@@ -73,7 +73,7 @@ export function renderTemplatesPanel(root, { apiKey, getToken }) {
       if (!token) return alert("Sign in with Google first.");
 
       const stats = loadStats(statSchema);
-      await writeStatsToSheet(linkedId, t.mappings, stats, token);
+      await writeStatsToSheet(linkedId, t.mappings, stats, token, statSchema);
       window.open(`https://docs.google.com/spreadsheets/d/${linkedId}/edit`, "_blank");
     };
 
@@ -85,7 +85,7 @@ export function renderTemplatesPanel(root, { apiKey, getToken }) {
       if (!token) return alert("Sign in with Google first.");
 
       const stats = loadStats(statSchema);
-      await writeStatsToSheet(t.spreadsheetId, t.mappings, stats, token);
+      await writeStatsToSheet(t.spreadsheetId, t.mappings, stats, token, statSchema);
       window.open(`https://docs.google.com/spreadsheets/d/${t.spreadsheetId}/edit`, "_blank");
     };
 
