@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Stats Hub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h2>Game Stats</h2>
+<div id="stats-root"></div>
+
+<hr>
+
+<!-- Google section (bottom) -->
+<div id="google-panel">
+  <h3>Google</h3>
+  <div class="template-actions">
+    <button id="btnSignIn">Sign in with Google</button>
+  </div>
+  <div id="auth-status" class="muted">Not signed in.</div>
+</div>
+
+<hr>
+
+<div id="templates-root"></div>
+
+<!-- Google libraries -->
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
