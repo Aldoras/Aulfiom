@@ -1,34 +1,18 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Stats Hub</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/webp" href="/icons/menus/Prestige.webp" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Idle Obelisk Miner - Stats Hub</title>
+  </head>
+  <body>
+    <div id="root"></div>
 
-<h2>Game Stats</h2>
-<div id="stats-root"></div>
+    <!-- Google Identity Services & Google API Client libraries -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
 
-<hr>
-
-<!-- Google section (bottom) -->
-<div id="google-panel">
-  <h3>Google</h3>
-  <div class="template-actions">
-    <button id="btnSignIn">Sign in with Google</button>
-  </div>
-  <div id="auth-status" class="muted">Not signed in.</div>
-</div>
-
-<hr>
-
-<div id="templates-root"></div>
-
-<!-- Google libraries -->
-<script src="https://accounts.google.com/gsi/client"></script>
-<script src="https://apis.google.com/js/api.js"></script>
-
-<script type="module" src="app.js"></script>
-</body>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
