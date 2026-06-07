@@ -6,29 +6,30 @@ export default function Sidebar({
   activeCategory,
   setActiveCategory,
 }) {
-  const customItems = [
-    {
-      id: "stats",
-      name: "Game Stats",
-      icon: "icons/menus/Prestige.webp",
-      isStats: true
-    },
+  const trackingItems = schema.filter(
+    (cat) => cat.id !== "craft" && cat.id !== "floors"
+  );
+
+  const statsItem = {
+    id: "stats",
+    name: "Game Stats",
+    isStats: true
+  };
+
+  const toolItems = [
     {
       id: "exporter",
       name: "Sheets Exporter",
-      icon: "icons/menus/Craft.webp", // Fallback image or custom menu image
       isSpreadsheet: true
     },
     {
       id: "admin",
       name: "Developer Admin",
-      icon: "icons/menus/Construct.webp",
       isAdmin: true
     },
     {
       id: "help",
       name: "Wiki & Help",
-      icon: "icons/menus/Drones.webp", // Fallback
       isHelp: true
     }
   ];
@@ -39,10 +40,10 @@ export default function Sidebar({
       <div className="p-4 flex-1 space-y-6">
         <div>
           <h3 className="px-3 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-            Game Vault
+            Tracking Progress
           </h3>
           <nav className="mt-2 space-y-1">
-            {schema.map((cat) => {
+            {trackingItems.map((cat) => {
               const isActive = activeCategory === cat.id;
               return (
                 <button
@@ -71,13 +72,39 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {/* Integration Section */}
+        {/* Statistics Section */}
+        <div>
+          <h3 className="px-3 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+            Statistics
+          </h3>
+          <nav className="mt-2 space-y-1">
+            {(() => {
+              const isActive = activeCategory === statsItem.id;
+              return (
+                <button
+                  key={statsItem.id}
+                  onClick={() => setActiveCategory(statsItem.id)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-indigo-600/20 text-indigo-300 border-l-4 border-indigo-500 pl-2"
+                      : "text-gray-400 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <BarChart3 className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                  <span>{statsItem.name}</span>
+                </button>
+              );
+            })()}
+          </nav>
+        </div>
+
+        {/* Integrations & Tools Section */}
         <div>
           <h3 className="px-3 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
             Integrations & Info
           </h3>
           <nav className="mt-2 space-y-1">
-            {customItems.map((item) => {
+            {toolItems.map((item) => {
               const isActive = activeCategory === item.id;
               return (
                 <button
@@ -93,8 +120,6 @@ export default function Sidebar({
                     <FileSpreadsheet className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                   ) : item.isAdmin ? (
                     <Settings className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-                  ) : item.isStats ? (
-                    <BarChart3 className="w-5 h-5 text-indigo-400 flex-shrink-0" />
                   ) : (
                     <HelpCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                   )}
