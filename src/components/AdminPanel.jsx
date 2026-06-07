@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Copy, Download, Check, Layers, ChevronDown, ChevronRight, Lock } from "lucide-react";
+import { Plus, Trash2, Copy, Download, Check, Layers, ChevronDown, ChevronRight, Lock, ArrowUp, ArrowDown } from "lucide-react";
 import { statSchema } from "../stats/schema.js";
+import { gameStatsCategory } from "../stats/schema/gameStats.js";
+import IconPickerModal from "./IconPickerModal.jsx";
 
 // Clean variable name builder
 function getVarName(catId) {
@@ -13,10 +15,41 @@ export default function AdminPanel() {
   const [category, setCategory] = useState(() => JSON.parse(JSON.stringify(statSchema[0] || {})));
   const [exportModalCode, setExportModalCode] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [collapsedTabs, setCollapsedTabs] = useState({});
+
+  // Icon picker state
+  const [iconPicker, setIconPicker] = useState({
+    isOpen: false,
+    title: "",
+    onSelect: null
+  });
+
+  const openIconPicker = (title, onSelect) => {
+    const scrollY = window.scrollY;
+    setIconPicker({
+      isOpen: true,
+      title,
+      onSelect: (path) => {
+        onSelect(path);
+        setIconPicker((prev) => ({ ...prev, isOpen: false }));
+        setTimeout(() => {
+          window.scrollTo({
+            top: scrollY,
+            behavior: "instant"
+          });
+        }, 0);
+      }
+    });
+  };
 
   // Dropdown options
   const categoryOptions = useMemo(() => {
-    return [...statSchema.map((c) => ({ id: c.id, name: c.name })), { id: "new", name: "➕ Create New Category" }];
+    return [
+      ...statSchema.map((c) => ({ id: c.id, name: c.name })),
+      { id: "gameStats", name: "📋 Game Stats Page" },
+      { id: "new", name: "➕ Create New Category" }
+    ];
   }, []);
 
   const handleSelectCategory = (catId) => {
@@ -28,11 +61,37 @@ export default function AdminPanel() {
         icon: "icons/menus/Prestige.webp",
         stats: []
       });
+    } else if (catId === "gameStats") {
+      const saved = localStorage.getItem("gameStatsSchemaConfig");
+      if (saved) {
+        try {
+          setCategory(JSON.parse(saved));
+        } catch {
+          setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
+        }
+      } else {
+        setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
+      }
     } else {
       const match = statSchema.find((c) => c.id === catId);
       if (match) {
         setCategory(JSON.parse(JSON.stringify(match)));
       }
+    }
+  };
+
+  const handleSaveLiveSchema = () => {
+    localStorage.setItem("gameStatsSchemaConfig", JSON.stringify(category));
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2000);
+  };
+
+  const handleResetToDefault = () => {
+    if (window.confirm("Are you sure you want to discard your custom changes and reset the Game Stats schema to default?")) {
+      localStorage.removeItem("gameStatsSchemaConfig");
+      setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2000);
     }
   };
 
@@ -74,6 +133,22 @@ export default function AdminPanel() {
     });
   };
 
+  const handleMoveTab = (index, direction) => {
+    setCategory((prev) => {
+      if (!prev.tabs) return prev;
+      const tabs = [...prev.tabs];
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      
+      // Swap elements if within bounds
+      if (targetIndex >= 0 && targetIndex < tabs.length) {
+        const temp = tabs[index];
+        tabs[index] = tabs[targetIndex];
+        tabs[targetIndex] = temp;
+      }
+      return { ...prev, tabs };
+    });
+  };
+
   // Stat item creators
   const createDefaultStat = (type) => {
     const key = `newField_${Date.now().toString().slice(-4)}`;
@@ -85,22 +160,6 @@ export default function AdminPanel() {
     }
     if (type === "toggle") {
       return { key, name: "New Toggle Card", type: "toggle", layout: "card-5", states: 5, default: 0, labels: ["Locked", "Normal", "Gilded", "Polychrome", "Infernal"], typeImage: "" };
-    }
-    if (type === "skill") {
-      return {
-        key,
-        name: "New Skill Node",
-        type: "skill",
-        layout: "card",
-        states: 2,
-        default: 0,
-        labels: ["Locked", "Unlocked"],
-        typeImage: "",
-        x: 50,
-        y: 50,
-        prereqs: [],
-        hasCrystals: false
-      };
     }
     if (type === "group") {
       return {
@@ -177,6 +236,97 @@ export default function AdminPanel() {
     });
   };
 
+  const handleDuplicateStat = (statIndex, tabIndex = null) => {
+    setCategory((prev) => {
+      let statsList;
+      if (tabIndex !== null && prev.tabs) {
+        statsList = prev.tabs[tabIndex].stats;
+      } else {
+        statsList = prev.stats;
+      }
+      if (!statsList || !statsList[statIndex]) return prev;
+
+      const original = statsList[statIndex];
+      // Deep copy the original stat
+      const copy = JSON.parse(JSON.stringify(original));
+      
+      // Append copy suffix to key and name if they exist
+      if (copy.key) {
+        const baseKey = copy.key.replace(/_copy(_\d+)?$/, "");
+        copy.key = `${baseKey}_copy_${Date.now().toString().slice(-4)}`;
+      }
+      if (copy.name) {
+        copy.name = `${copy.name} (Copy)`;
+      }
+
+      // Insert the copy right after the duplicated element
+      const updatedStatsList = [...statsList];
+      updatedStatsList.splice(statIndex + 1, 0, copy);
+
+      if (tabIndex !== null && prev.tabs) {
+        const tabs = [...prev.tabs];
+        tabs[tabIndex] = { ...tabs[tabIndex], stats: updatedStatsList };
+        return { ...prev, tabs };
+      } else {
+        return { ...prev, stats: updatedStatsList };
+      }
+    });
+  };
+
+  const handleMoveStatToTab = (statIndex, sourceTabIndex, targetTabId) => {
+    setCategory((prev) => {
+      if (!prev.tabs) return prev;
+      
+      const tabs = [...prev.tabs];
+      const sourceTab = tabs[sourceTabIndex];
+      if (!sourceTab || !sourceTab.stats || !sourceTab.stats[statIndex]) return prev;
+
+      // Extract the stat
+      const statToMove = sourceTab.stats[statIndex];
+      const updatedSourceStats = sourceTab.stats.filter((_, i) => i !== statIndex);
+      tabs[sourceTabIndex] = { ...sourceTab, stats: updatedSourceStats };
+
+      // Add to target tab
+      const targetTabIndex = tabs.findIndex(t => t.id === targetTabId);
+      if (targetTabIndex !== -1) {
+        const targetTab = tabs[targetTabIndex];
+        const updatedTargetStats = targetTab.stats ? [...targetTab.stats] : [];
+        updatedTargetStats.push(statToMove);
+        tabs[targetTabIndex] = { ...targetTab, stats: updatedTargetStats };
+      }
+
+      return { ...prev, tabs };
+    });
+  };
+
+  const handleReorderStat = (statIndex, direction, tabIndex = null) => {
+    setCategory((prev) => {
+      let statsList;
+      if (tabIndex !== null && prev.tabs) {
+        statsList = prev.tabs[tabIndex].stats;
+      } else {
+        statsList = prev.stats;
+      }
+      if (!statsList) return prev;
+
+      const targetIndex = direction === "up" ? statIndex - 1 : statIndex + 1;
+      if (targetIndex < 0 || targetIndex >= statsList.length) return prev;
+
+      const updatedStatsList = [...statsList];
+      const temp = updatedStatsList[statIndex];
+      updatedStatsList[statIndex] = updatedStatsList[targetIndex];
+      updatedStatsList[targetIndex] = temp;
+
+      if (tabIndex !== null && prev.tabs) {
+        const tabs = [...prev.tabs];
+        tabs[tabIndex] = { ...tabs[tabIndex], stats: updatedStatsList };
+        return { ...prev, tabs };
+      } else {
+        return { ...prev, stats: updatedStatsList };
+      }
+    });
+  };
+
   // Serialize to code
   const handleExport = () => {
     const varName = getVarName(category.id);
@@ -239,19 +389,41 @@ export default function AdminPanel() {
           </select>
         </div>
 
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
-        >
-          <Download className="w-4 h-4" />
-          <span>Export Category File</span>
-        </button>
+        <div className="flex gap-2">
+          {selectedCatId === "gameStats" && (
+            <>
+              <button
+                onClick={handleSaveLiveSchema}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{savedSuccess ? "Saved Live!" : "Save Live Schema"}</span>
+              </button>
+              <button
+                onClick={handleResetToDefault}
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                title="Discard custom overrides and reset to defaults"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Reset to Default</span>
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Category File</span>
+          </button>
+        </div>
       </div>
 
       {/* Metadata Editor */}
       <div className="p-5 rounded-2xl border border-white/5 bg-gray-900/20 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase tracking-wider text-indigo-400">Category Info</h3>
-        <div className={`grid grid-cols-1 ${category.id === "skillTree" ? "md:grid-cols-4" : "md:grid-cols-3"} gap-4`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-400">Category ID (File name)</label>
             <input
@@ -276,113 +448,171 @@ export default function AdminPanel() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-400">Icon Path</label>
-            <input
-              type="text"
-              value={category.icon || ""}
-              onChange={(e) => handleMetadataChange("icon", e.target.value)}
-              placeholder="e.g. icons/menus/Prestige.webp"
-              className="w-full bg-gray-950/60 border border-white/10 text-xs text-white p-2 rounded-lg outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          {category.id === "skillTree" && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-400">Canvas Scroll Height (px)</label>
+            <div className="flex gap-2 items-center">
+              {category.icon && (
+                <div className="w-8 h-8 rounded-lg bg-gray-950 flex items-center justify-center p-1 border border-white/10 shrink-0">
+                  <img src={`/${category.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                </div>
+              )}
               <input
-                type="number"
-                value={category.canvasHeight ?? 2000}
-                onChange={(e) => handleMetadataChange("canvasHeight", parseInt(e.target.value) || 2000)}
-                placeholder="e.g. 2000"
-                className="w-full bg-gray-950/60 border border-white/10 text-xs text-white p-2 rounded-lg outline-none focus:border-indigo-500"
+                type="text"
+                value={category.icon || ""}
+                onChange={(e) => handleMetadataChange("icon", e.target.value)}
+                placeholder="e.g. icons/menus/Prestige.webp"
+                className="flex-1 bg-gray-950/60 border border-white/10 text-xs text-white p-2 rounded-lg outline-none focus:border-indigo-500"
               />
+              <button
+                type="button"
+                onClick={() => openIconPicker("Select Category Icon", (path) => handleMetadataChange("icon", path))}
+                className="px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+              >
+                Browse
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Tabs list (if Prestige or Construct) */}
       <div className="p-5 rounded-2xl border border-white/5 bg-gray-900/20 space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-2">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider text-indigo-400">Tabs Structure</h3>
-          <button
-            onClick={handleAddTab}
-            className="flex items-center gap-1 px-3 py-1 bg-white/5 hover:bg-white/10 text-xs font-semibold border border-white/10 rounded-lg transition-colors text-indigo-300"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Tab</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {category.tabs && category.tabs.length > 0 && (
+              <button
+                onClick={() => {
+                  const allCollapsed = category.tabs.every(t => collapsedTabs[t.id || t.name]);
+                  const nextState = {};
+                  category.tabs.forEach(t => {
+                    nextState[t.id || t.name] = !allCollapsed;
+                  });
+                  setCollapsedTabs(nextState);
+                }}
+                className="px-3 py-1 bg-white/5 hover:bg-white/10 text-xs font-semibold border border-white/10 rounded-lg transition-colors text-indigo-300 cursor-pointer"
+              >
+                {category.tabs.every(t => collapsedTabs[t.id || t.name]) ? "Expand All" : "Collapse All"}
+              </button>
+            )}
+            <button
+              onClick={handleAddTab}
+              className="flex items-center gap-1 px-3 py-1 bg-white/5 hover:bg-white/10 text-xs font-semibold border border-white/10 rounded-lg transition-colors text-indigo-300 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Tab</span>
+            </button>
+          </div>
         </div>
 
         {category.tabs && category.tabs.length > 0 ? (
           <div className="space-y-3">
-            {category.tabs.map((tab, idx) => (
-              <div key={idx} className="p-3 bg-gray-950/50 border border-white/5 rounded-xl space-y-3">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-500">Tab #{idx + 1}</span>
-                    <input
-                      type="text"
-                      value={tab.name || ""}
-                      onChange={(e) => handleTabChange(idx, "name", e.target.value)}
-                      placeholder="Tab Name"
-                      className="bg-transparent border-b border-white/10 text-xs font-bold text-white focus:border-indigo-500 outline-none px-1"
-                    />
+            {category.tabs.map((tab, idx) => {
+              const tabKey = tab.id || tab.name || `tab-${idx}`;
+              const isCollapsed = !!collapsedTabs[tabKey];
+              return (
+                <div key={idx} className="p-3 bg-gray-950/50 border border-white/5 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCollapsedTabs(prev => ({ ...prev, [tabKey]: !prev[tabKey] }))}
+                        className="p-1 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-all cursor-pointer"
+                        title={isCollapsed ? "Expand Tab" : "Collapse Tab"}
+                      >
+                        {isCollapsed ? (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <span className="text-xs font-bold text-gray-500">Tab #{idx + 1}</span>
+                      <input
+                        type="text"
+                        value={tab.name || ""}
+                        onChange={(e) => handleTabChange(idx, "name", e.target.value)}
+                        placeholder="Tab Name"
+                        className="bg-transparent border-b border-white/10 text-xs font-bold text-white focus:border-indigo-500 outline-none px-1"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-500">ID:</span>
+                      <input
+                        type="text"
+                        value={tab.id || ""}
+                        onChange={(e) => handleTabChange(idx, "id", e.target.value)}
+                        placeholder="tab_id"
+                        className="bg-transparent border-b border-white/10 text-[10px] text-gray-300 focus:border-indigo-500 outline-none px-1 w-20"
+                      />
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => handleMoveTab(idx, "up")}
+                        className="p-1 rounded text-gray-500 hover:text-indigo-400 hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+                        title="Move Tab Up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        disabled={idx === category.tabs.length - 1}
+                        onClick={() => handleMoveTab(idx, "down")}
+                        className="p-1 rounded text-gray-500 hover:text-indigo-400 hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+                        title="Move Tab Down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveTab(idx)}
+                        className="p-1 rounded text-gray-500 hover:text-rose-400 hover:bg-white/5 transition-all cursor-pointer"
+                        title="Delete Tab"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-500">ID:</span>
-                    <input
-                      type="text"
-                      value={tab.id || ""}
-                      onChange={(e) => handleTabChange(idx, "id", e.target.value)}
-                      placeholder="tab_id"
-                      className="bg-transparent border-b border-white/10 text-[10px] text-gray-300 focus:border-indigo-500 outline-none px-1 w-20"
-                    />
-                    <button
-                      onClick={() => handleRemoveTab(idx)}
-                      className="p-1 rounded text-gray-500 hover:text-rose-400 hover:bg-white/5 transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Tab Stats list */}
-                <div className="pl-4 border-l border-white/10 space-y-2">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Tab Items:</div>
-                  <StatEditorList
-                    list={tab.stats || []}
-                    onStatChange={(sIdx, f, v) => handleStatChange(sIdx, f, v, idx)}
-                    onRemoveStat={(sIdx) => handleRemoveStat(sIdx, idx)}
-                  />
-                  <div className="flex items-center gap-2 pt-2">
-                    <button
-                      onClick={() => handleAddStat(idx, "number")}
-                      className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5"
-                    >
-                      + Slider / Number
-                    </button>
-                    <button
-                      onClick={() => handleAddStat(idx, "toggle")}
-                      className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5"
-                    >
-                      + Toggle Card
-                    </button>
-                    <button
-                      onClick={() => handleAddStat(idx, "checkbox")}
-                      className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5"
-                    >
-                      + Checkbox
-                    </button>
-                    <button
-                      onClick={() => handleAddStat(idx, "section")}
-                      className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5"
-                    >
-                      + Section
-                    </button>
-                  </div>
+                  {/* Tab Stats list */}
+                  {!isCollapsed && (
+                    <div className="pl-4 border-l border-white/10 space-y-2">
+                      <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Tab Items:</div>
+                      <StatEditorList
+                        list={tab.stats || []}
+                        onStatChange={(sIdx, f, v) => handleStatChange(sIdx, f, v, idx)}
+                        onRemoveStat={(sIdx) => handleRemoveStat(sIdx, idx)}
+                        onDuplicateStat={(sIdx) => handleDuplicateStat(sIdx, idx)}
+                        onReorderStat={(sIdx, direction) => handleReorderStat(sIdx, direction, idx)}
+                        onMoveStat={(sIdx, targetTabId) => handleMoveStatToTab(sIdx, idx, targetTabId)}
+                        availableTabs={category.tabs.map(t => ({ id: t.id, name: t.name }))}
+                        currentTabId={tab.id}
+                        openIconPicker={openIconPicker}
+                      />
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          onClick={() => handleAddStat(idx, "number")}
+                          className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5 cursor-pointer"
+                        >
+                          + Slider / Number
+                        </button>
+                        <button
+                          onClick={() => handleAddStat(idx, "toggle")}
+                          className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5 cursor-pointer"
+                        >
+                          + Toggle Card
+                        </button>
+                        <button
+                          onClick={() => handleAddStat(idx, "checkbox")}
+                          className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5 cursor-pointer"
+                        >
+                          + Checkbox
+                        </button>
+                        <button
+                          onClick={() => handleAddStat(idx, "section")}
+                          className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-[10px] font-semibold text-gray-300 border border-white/5 cursor-pointer"
+                        >
+                          + Section
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div>
@@ -391,6 +621,9 @@ export default function AdminPanel() {
               list={category.stats || []}
               onStatChange={(sIdx, f, v) => handleStatChange(sIdx, f, v)}
               onRemoveStat={(sIdx) => handleRemoveStat(sIdx)}
+              onDuplicateStat={(sIdx) => handleDuplicateStat(sIdx)}
+              onReorderStat={(sIdx, direction) => handleReorderStat(sIdx, direction)}
+              openIconPicker={openIconPicker}
             />
             <div className="flex items-center gap-2 pt-3">
               <button
@@ -411,14 +644,6 @@ export default function AdminPanel() {
               >
                 + Add Checkbox
               </button>
-              {category.id === "skillTree" && (
-                <button
-                  onClick={() => handleAddStat(null, "skill")}
-                  className="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/55 rounded-xl text-xs font-bold text-indigo-300 border border-indigo-500/25 transition-all"
-                >
-                  + Add Skill Node
-                </button>
-              )}
               <button
                 onClick={() => handleAddStat(null, "group")}
                 className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
@@ -478,12 +703,20 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* Icon Picker modal overlay */}
+      <IconPickerModal
+        isOpen={iconPicker.isOpen}
+        onClose={() => setIconPicker((prev) => ({ ...prev, isOpen: false }))}
+        onSelect={iconPicker.onSelect}
+        title={iconPicker.title}
+      />
     </div>
   );
 }
 
 /* ----------------------- Stats Editor List ----------------------- */
-function StatEditorList({ list, onStatChange, onRemoveStat }) {
+function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onReorderStat, onMoveStat, availableTabs, currentTabId, openIconPicker }) {
   if (list.length === 0) {
     return <div className="text-[10px] text-gray-500 italic py-1">No items. Click add buttons below to populate.</div>;
   }
@@ -497,6 +730,14 @@ function StatEditorList({ list, onStatChange, onRemoveStat }) {
           stat={stat}
           onChange={(f, v) => onStatChange(idx, f, v)}
           onRemove={() => onRemoveStat(idx)}
+          onDuplicate={() => onDuplicateStat && onDuplicateStat(idx)}
+          onReorder={(direction) => onReorderStat && onReorderStat(idx, direction)}
+          isFirst={idx === 0}
+          isLast={idx === list.length - 1}
+          onMoveToTab={(targetTabId) => onMoveStat && onMoveStat(idx, targetTabId)}
+          availableTabs={availableTabs}
+          currentTabId={currentTabId}
+          openIconPicker={openIconPicker}
         />
       ))}
     </div>
@@ -504,7 +745,7 @@ function StatEditorList({ list, onStatChange, onRemoveStat }) {
 }
 
 /* ----------------------- Individual Stat Editor Card ----------------------- */
-function StatEditorItem({ stat, index, onChange, onRemove }) {
+function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorder, isFirst, isLast, onMoveToTab, availableTabs, currentTabId, openIconPicker }) {
   // Sections are expanded by default for discoverability
   const [isExpanded, setIsExpanded] = useState(stat.type === "section");
 
@@ -537,12 +778,38 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
           </span>
         </button>
 
-        <button
-          onClick={onRemove}
-          className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-rose-400 transition-all"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            disabled={isFirst}
+            onClick={() => onReorder("up")}
+            className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-indigo-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+            title="Move Up"
+          >
+            <ArrowUp className="w-3.5 h-3.5" />
+          </button>
+          <button
+            disabled={isLast}
+            onClick={() => onReorder("down")}
+            className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-indigo-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+            title="Move Down"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDuplicate}
+            className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-indigo-400 transition-all cursor-pointer"
+            title="Duplicate Row"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-rose-400 transition-all cursor-pointer"
+            title="Delete Row"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Expanded Editor Form */}
@@ -557,10 +824,13 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
                 onChange={(e) => onChange("type", e.target.value)}
                 className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none cursor-pointer focus:border-indigo-500 font-semibold"
               >
-                <option value="number">Slider / Number</option>
+                <option value="number">Number</option>
+                <option value="chance">Chance (%)</option>
+                <option value="multi">Multiplier (x)</option>
+                <option value="cap">Cap / Capacity</option>
+                <option value="reduction">Reduction (-%)</option>
                 <option value="checkbox">Checkbox</option>
                 <option value="toggle">Toggle Card</option>
-                <option value="skill">Skill Tree Node</option>
                 <option value="group">Group (Drone Bay)</option>
                 <option value="section">Section (Accordion)</option>
               </select>
@@ -589,19 +859,54 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
                 className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
               />
             </div>
+
+            {/* Move to Tab Option */}
+            {availableTabs && availableTabs.length > 1 && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                  <Layers className="w-3 h-3 text-indigo-400" />
+                  <span>Move to Tab</span>
+                </label>
+                <select
+                  value={currentTabId || ""}
+                  onChange={(e) => onMoveToTab(e.target.value)}
+                  className="w-full bg-gray-950 border border-indigo-500/20 hover:border-indigo-500/40 text-xs text-indigo-300 px-2 py-1 rounded outline-none cursor-pointer focus:border-indigo-500 font-semibold transition-colors"
+                >
+                  {availableTabs.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} {t.id === currentTabId ? "(Current)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {!isSection && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Icon Link</label>
-                <input
-                  type="text"
-                  value={stat.icon || ""}
-                  onChange={(e) => onChange("icon", e.target.value)}
-                  placeholder="icons/..."
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
+                <div className="flex gap-1.5 items-center">
+                  {stat.icon && (
+                    <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
+                      <img src={`/${stat.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={stat.icon || ""}
+                    onChange={(e) => onChange("icon", e.target.value)}
+                    placeholder="icons/..."
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openIconPicker(`Select Icon for ${stat.name || 'Stat'}`, (path) => onChange("icon", path))}
+                    className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                  >
+                    Browse
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -625,6 +930,17 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
                   className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
                 />
               </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Suffix</label>
+                <input
+                  type="text"
+                  value={stat.suffix || ""}
+                  onChange={(e) => onChange("suffix", e.target.value)}
+                  placeholder="e.g. /s, s, etc."
+                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                />
+              </div>
             </div>
           )}
 
@@ -643,6 +959,33 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
                   onChange("stats", updatedSubStats);
                 }}
                 onRemoveStat={handleSubStatRemove}
+                onDuplicateStat={(subIdx) => {
+                  const subList = stat.stats || [];
+                  if (!subList[subIdx]) return;
+                  const original = subList[subIdx];
+                  const copy = JSON.parse(JSON.stringify(original));
+                  if (copy.key) {
+                    const baseKey = copy.key.replace(/_copy(_\d+)?$/, "");
+                    copy.key = `${baseKey}_copy_${Date.now().toString().slice(-4)}`;
+                  }
+                  if (copy.name) {
+                    copy.name = `${copy.name} (Copy)`;
+                  }
+                  const updatedSubStats = [...subList];
+                  updatedSubStats.splice(subIdx + 1, 0, copy);
+                  onChange("stats", updatedSubStats);
+                }}
+                onReorderStat={(subIdx, direction) => {
+                  const subList = stat.stats || [];
+                  const targetIndex = direction === "up" ? subIdx - 1 : subIdx + 1;
+                  if (targetIndex < 0 || targetIndex >= subList.length) return;
+                  const updatedSubStats = [...subList];
+                  const temp = updatedSubStats[subIdx];
+                  updatedSubStats[subIdx] = updatedSubStats[targetIndex];
+                  updatedSubStats[targetIndex] = temp;
+                  onChange("stats", updatedSubStats);
+                }}
+                openIconPicker={openIconPicker}
               />
               
               <div className="flex items-center gap-2 pt-2">
@@ -753,91 +1096,27 @@ function StatEditorItem({ stat, index, onChange, onRemove }) {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Type Image Overlay</label>
-                <input
-                  type="text"
-                  value={stat.typeImage || ""}
-                  onChange={(e) => onChange("typeImage", e.target.value)}
-                  placeholder="e.g. icons/ores/Tin_Ore.png"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Conditional: Skill Nodes */}
-          {stat.type === "skill" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1.5 border-t border-white/5">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">X Position (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={stat.x ?? 50}
-                  onChange={(e) => onChange("x", parseFloat(e.target.value) ?? 50)}
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Y Position (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={stat.y ?? 50}
-                  onChange={(e) => onChange("y", parseFloat(e.target.value) ?? 50)}
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Prerequisites (comma-sep)</label>
-                <input
-                  type="text"
-                  value={stat.prereqs ? stat.prereqs.join(",") : ""}
-                  onChange={(e) => onChange("prereqs", e.target.value ? e.target.value.split(",").map(s => s.trim()).filter(Boolean) : [])}
-                  placeholder="e.g. swingHarderSkill"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1 flex flex-col justify-end pb-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1.5 cursor-pointer">
+                <div className="flex gap-1.5 items-center">
+                  {stat.typeImage && (
+                    <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
+                      <img src={`/${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                    </div>
+                  )}
                   <input
-                    type="checkbox"
-                    checked={stat.hasCrystals ?? false}
-                    onChange={(e) => onChange("hasCrystals", e.target.checked)}
-                    className="rounded border-white/10 bg-gray-950 text-indigo-600 focus:ring-0 cursor-pointer w-4 h-4"
+                    type="text"
+                    value={stat.typeImage || ""}
+                    onChange={(e) => onChange("typeImage", e.target.value)}
+                    placeholder="e.g. icons/ores/Tin_Ore.png"
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
                   />
-                  <span>Show Corner Crystals</span>
-                </label>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">States (Count)</label>
-                <input
-                  type="number"
-                  value={stat.states ?? 2}
-                  onChange={(e) => onChange("states", parseInt(e.target.value) || 2)}
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Labels (comma-sep)</label>
-                <input
-                  type="text"
-                  value={stat.labels ? stat.labels.join(",") : ""}
-                  onChange={(e) => onChange("labels", e.target.value.split(","))}
-                  placeholder="e.g. Locked,Unlocked"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Type Image Overlay</label>
-                <input
-                  type="text"
-                  value={stat.typeImage || ""}
-                  onChange={(e) => onChange("typeImage", e.target.value)}
-                  placeholder="e.g. icons/skill_tree/Swing_Harder.webp"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
+                  <button
+                    type="button"
+                    onClick={() => openIconPicker(`Select Overlay for ${stat.name || 'Stat'}`, (path) => onChange("typeImage", path))}
+                    className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                  >
+                    Browse
+                  </button>
+                </div>
               </div>
             </div>
           )}

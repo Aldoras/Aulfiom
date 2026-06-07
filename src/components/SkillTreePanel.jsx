@@ -3,10 +3,16 @@ import { Lock, RotateCcw } from "lucide-react";
 
 export default function SkillTreePanel({ catData, stats, onUpdateField }) {
   const list = catData.stats ?? [];
-  const canvasHeight = catData.canvasHeight ?? 2000;
+  
+  // Dynamically calculate canvas height based on max node Y position
+  const maxY = list.reduce((max, s) => Math.max(max, s.y ?? 0), 0);
+  const canvasHeight = Math.max(650, maxY + 150); // Minimum height of 650px, plus padding at bottom
+
+  const totalLevels = list.reduce((sum, s) => sum + ((s.states ?? 2) - 1), 0);
+  const unlockedLevels = list.reduce((sum, s) => sum + Number(stats[s.key] ?? s.default ?? 0), 0);
 
   const handleNodeClick = (stat) => {
-    const val = stats[stat.key] ?? stat.default ?? 0;
+    const val = Number(stats[stat.key] ?? stat.default ?? 0);
     const states = stat.states ?? 2;
     const nextVal = (val + 1) % states;
     onUpdateField(stat.key, nextVal);
@@ -30,26 +36,26 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
         {/* Glow effect lines if unlocked (toned down width and opacity) */}
         {prerequisiteMet && (
           <>
-            <line x1={`${from.x}%`} y1={`${from.y}%`} x2={`${from.x}%`} y2={`${midY}%`} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
-            <line x1={`${from.x}%`} y1={`${midY}%`} x2={`${to.x}%`} y2={`${midY}%`} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
-            <line x1={`${to.x}%`} y1={`${midY}%`} x2={`${to.x}%`} y2={`${to.y}%`} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
+            <line x1={from.x} y1={from.y} x2={from.x} y2={midY} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
+            <line x1={from.x} y1={midY} x2={to.x} y2={midY} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
+            <line x1={to.x} y1={midY} x2={to.x} y2={to.y} stroke="rgba(129, 140, 248, 0.15)" strokeWidth="6" strokeLinecap="round" className="animate-pulse" />
           </>
         )}
         {/* Core connection lines */}
         <line
-          x1={`${from.x}%`} y1={`${from.y}%`} x2={`${from.x}%`} y2={`${midY}%`}
+          x1={from.x} y1={from.y} x2={from.x} y2={midY}
           stroke={strokeColor} strokeWidth="3" strokeLinecap="round"
           style={{ filter: prerequisiteMet ? `drop-shadow(0 0 2px ${shadowColor})` : "none" }}
           className="transition-all duration-300"
         />
         <line
-          x1={`${from.x}%`} y1={`${midY}%`} x2={`${to.x}%`} y2={`${midY}%`}
+          x1={from.x} y1={midY} x2={to.x} y2={midY}
           stroke={strokeColor} strokeWidth="3" strokeLinecap="round"
           style={{ filter: prerequisiteMet ? `drop-shadow(0 0 2px ${shadowColor})` : "none" }}
           className="transition-all duration-300"
         />
         <line
-          x1={`${to.x}%`} y1={`${midY}%`} x2={`${to.x}%`} y2={`${to.y}%`}
+          x1={to.x} y1={midY} x2={to.x} y2={to.y}
           stroke={strokeColor} strokeWidth="3" strokeLinecap="round"
           style={{ filter: prerequisiteMet ? `drop-shadow(0 0 2px ${shadowColor})` : "none" }}
           className="transition-all duration-300"
@@ -67,10 +73,10 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
       <g key={`${parentKey}-${key}`}>
         {prerequisiteMet && (
           <line
-            x1={`${from.x}%`}
-            y1={`${from.y}%`}
-            x2={`${to.x}%`}
-            y2={`${to.y}%`}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
             stroke="rgba(129, 140, 248, 0.15)"
             strokeWidth="6"
             strokeLinecap="round"
@@ -78,10 +84,10 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
           />
         )}
         <line
-          x1={`${from.x}%`}
-          y1={`${from.y}%`}
-          x2={`${to.x}%`}
-          y2={`${to.y}%`}
+          x1={from.x}
+          y1={from.y}
+          x2={to.x}
+          y2={to.y}
           stroke={strokeColor}
           strokeWidth="3"
           strokeLinecap="round"
@@ -95,7 +101,7 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
   return (
     <div className="flex flex-col items-center w-full">
       {/* Category Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full max-w-[800px] mb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full max-w-[802px] mb-5">
         <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
           {catData.icon && (
             <img
@@ -106,6 +112,9 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
             />
           )}
           <span>{catData.name}</span>
+          <span className="text-indigo-400 font-semibold text-sm border border-indigo-500/20 bg-indigo-500/5 px-2 py-0.5 rounded-lg shrink-0 ml-1">
+            {unlockedLevels}/{totalLevels}
+          </span>
         </h2>
 
         <button
@@ -117,17 +126,17 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
         </button>
       </div>
 
-      {/* Scrollable Frame Container */}
-      <div className="w-full max-w-[800px] h-[650px] overflow-y-auto border border-white/10 rounded-2xl bg-gray-950 shadow-[0_20px_50px_rgba(0,0,0,0.65)] mb-12 relative scrollbar-thin">
+      {/* Frame Wrapper Container */}
+      <div className="w-full max-w-[802px] border border-white/10 rounded-2xl bg-gray-950 shadow-[0_20px_50px_rgba(0,0,0,0.65)] mb-12 relative overflow-x-auto scrollbar-thin">
         
         {/* Starry Skill Tree Canvas */}
         <div 
           style={{ height: `${canvasHeight}px` }}
-          className="w-full relative overflow-hidden galaxy-bg select-none"
+          className="w-[800px] shrink-0 relative overflow-hidden galaxy-bg select-none"
         >
           
           {/* SVG Connector Lines Layer */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[2]" width="100%" height="100%">
             {list.map((stat) => {
               if (!stat.prereqs || stat.prereqs.length === 0) return null;
               const toPos = { x: stat.x, y: stat.y };
@@ -136,9 +145,9 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
                 if (!parentStat) return null;
                 const fromPos = { x: parentStat.x, y: parentStat.y };
                 
-                // Check if the prerequisite is unlocked
-                const prereqVal = stats[prereqKey] ?? parentStat.default ?? 0;
-                const prerequisiteMet = prereqVal > 0;
+                // Check if the child node (tier X+1) itself is unlocked
+                const childVal = stats[stat.key] ?? stat.default ?? 0;
+                const prerequisiteMet = childVal > 0;
                 
                 // Draw straight line or step line
                 if (fromPos.x === toPos.x || fromPos.y === toPos.y) {
@@ -165,7 +174,7 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
             return (
               <div
                 key={stat.key}
-                style={{ left: `${stat.x}%`, top: `${stat.y}%` }}
+                style={{ left: `${stat.x}px`, top: `${stat.y}px` }}
                 className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10"
               >
                 {/* Upgrade Button / Node Frame */}
@@ -205,7 +214,7 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
                 </button>
 
                 {/* Dynamic Name and Level HUD Label underneath the Node with dark backdrop for maximum legibility */}
-                <div className="absolute -bottom-12 flex flex-col items-center pointer-events-none w-26 text-center bg-gray-950/85 border border-white/10 px-2 py-0.5 rounded-lg shadow-lg backdrop-blur-sm z-20">
+                <div className="absolute -bottom-9 flex flex-col items-center pointer-events-none w-28 text-center bg-gray-950/85 border border-white/10 px-2 py-0.5 rounded-lg shadow-lg backdrop-blur-sm z-20">
                   <span className="text-[8px] font-bold text-white/90 truncate w-full">
                     {stat.name}
                   </span>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Cpu, Award, Star, Settings, FileSpreadsheet, ExternalLink, HelpCircle } from "lucide-react";
+import { Cpu, Award, Star, Settings, FileSpreadsheet, ExternalLink, HelpCircle, BarChart3 } from "lucide-react";
 
 export default function Sidebar({
   schema,
@@ -7,6 +7,12 @@ export default function Sidebar({
   setActiveCategory,
 }) {
   const customItems = [
+    {
+      id: "stats",
+      name: "Game Stats",
+      icon: "icons/menus/Prestige.webp",
+      isStats: true
+    },
     {
       id: "exporter",
       name: "Sheets Exporter",
@@ -87,6 +93,8 @@ export default function Sidebar({
                     <FileSpreadsheet className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                   ) : item.isAdmin ? (
                     <Settings className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                  ) : item.isStats ? (
+                    <BarChart3 className="w-5 h-5 text-indigo-400 flex-shrink-0" />
                   ) : (
                     <HelpCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                   )}

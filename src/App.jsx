@@ -8,9 +8,11 @@ import SheetsExporter from "./components/SheetsExporter.jsx";
 import ImportModal from "./components/ImportModal.jsx";
 import HelpSection from "./components/HelpSection.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
+import GameStatsViewer from "./components/GameStatsViewer.jsx";
 import SkillTreePanel from "./components/SkillTreePanel.jsx";
 
 import { statSchema } from "./stats/schema.js";
+import { gameStatsCategory } from "./stats/schema/gameStats.js";
 import { loadStats, saveStats } from "./stats/storage.js";
 import { getSharedStatsFromUrl, clearShareUrlParam } from "./stats/sharing.js";
 
@@ -120,6 +122,10 @@ export default function App() {
 
   // Resolve category view
   const renderCategoryContent = () => {
+    if (activeCategory === "stats") {
+      return <GameStatsViewer catData={gameStatsCategory} />;
+    }
+
     if (activeCategory === "exporter") {
       return (
         <SheetsExporter

@@ -1,34 +1,16 @@
-# Aulfiom - Idle Obelisk Miner Hub
+# React + Vite
 
-Aldoras' Ultimate Linker For Idle Obelisk Miner Stats Hub. A fully-interactive React + Vite web application to track stats, configure character builds, view drones/cards, edit skill trees, and export to spreadsheets.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 🚀 Features
+Currently, two official plugins are available:
 
-- **Data-Driven Skill Tree**: Fully configurable SVG lines, dynamic levels (`level/maxlevel`), custom grid coordinates, and premium corner crystals.
-- **Interactive Stats Trackers**: Track Drones, Cards, Prestige, Construct, Crafting, and Floor progress.
-- **Google Sheets Exporter**: Integrated authentication to export character stats directly to spreadsheets.
-- **Developer Admin (Schema Sculptor)**: Visually edit, create, and customize stats schemas and download the configuration files directly.
-- **State Serialization**: Save changes automatically to local storage and generate shareable links to share configurations.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## 🛠️ Technology Stack
+## React Compiler
 
-- **Framework**: React 19 + Vite
-- **Styling**: Tailwind CSS + Custom CSS gradients, animations, and galaxy backdrops
-- **Icons**: Lucide Icons + custom game assets
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## 💻 Getting Started
+## Expanding the ESLint configuration
 
-### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Run the Development Server
-```bash
-npm run dev
-```
-
-### 3. Build for Production
-```bash
-npm run build
-```
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

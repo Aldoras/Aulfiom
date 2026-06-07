@@ -56,7 +56,7 @@ function safeParse(text) {
 
 export function defaultForType(type) {
   if (type === "checkbox") return false;
-  if (type === "toggle" || type === "skill") return 0;
+  if (type === "toggle") return 0;
   return 0; // number
 }
 
