@@ -169,7 +169,7 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
                 <div className="absolute inset-0 w-full h-full bg-gray-950">
                   {backingSrc ? (
                     <img
-                      src={`/${backingSrc}`}
+                      src={`${import.meta.env.BASE_URL}${backingSrc}`}
                       alt=""
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       onError={(e) => {
@@ -184,7 +184,7 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
                 {/* Overlaid Type Image (centered) */}
                 {typeSrc && (
                   <img
-                    src={`/${typeSrc}`}
+                    src={`${import.meta.env.BASE_URL}${typeSrc}`}
                     alt=""
                     className={`absolute inset-0 m-auto w-[24px] h-[24px] object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
                       state === 0 ? "opacity-35" : ""

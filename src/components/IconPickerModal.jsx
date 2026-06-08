@@ -165,7 +165,7 @@ export default function IconPickerModal({ isOpen, onClose, onSelect, title = "Se
                       }}
                     >
                       <img 
-                        src={`/${path}`} 
+                        src={`${import.meta.env.BASE_URL}${path}`} 
                         alt={cleanName}
                         className="max-w-full max-h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
                         loading="lazy"

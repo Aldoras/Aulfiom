@@ -460,7 +460,7 @@ export default function AdminPanel() {
             <div className="flex gap-2 items-center">
               {category.icon && (
                 <div className="w-8 h-8 rounded-lg bg-gray-950 flex items-center justify-center p-1 border border-white/10 shrink-0">
-                  <img src={`/${category.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                  <img src={`${import.meta.env.BASE_URL}${category.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                 </div>
               )}
               <input
@@ -905,7 +905,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <div className="flex gap-1.5 items-center">
                   {stat.icon && (
                     <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
-                      <img src={`/${stat.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                      <img src={`${import.meta.env.BASE_URL}${stat.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                     </div>
                   )}
                   <input
@@ -1115,7 +1115,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <div className="flex gap-1.5 items-center">
                   {stat.typeImage && (
                     <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
-                      <img src={`/${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                      <img src={`${import.meta.env.BASE_URL}${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                     </div>
                   )}
                   <input

@@ -105,7 +105,7 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
         <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
           {catData.icon && (
             <img
-              src={`/${catData.icon}`}
+              src={`${import.meta.env.BASE_URL}${catData.icon}`}
               alt=""
               className="w-6 h-6 object-contain"
               onError={(e) => (e.target.style.display = "none")}
@@ -186,7 +186,7 @@ export default function SkillTreePanel({ catData, stats, onUpdateField }) {
                   {/* Skill Icon */}
                   {stat.typeImage && (
                     <img
-                      src={`/${stat.typeImage}`}
+                      src={`${import.meta.env.BASE_URL}${stat.typeImage}`}
                       alt={stat.name}
                       className={`w-8 h-8 object-contain filter drop-shadow-[0_2px_3px_rgba(0,0,0,0.7)] transition-transform group-hover:scale-110 ${
                         isLocked ? "opacity-35" : ""

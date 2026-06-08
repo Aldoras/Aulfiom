@@ -21,7 +21,7 @@ export default function StatPanel({ catData, stats, onUpdateField }) {
         <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           {catData.icon && (
             <img
-              src={`/${catData.icon}`}
+              src={`${import.meta.env.BASE_URL}${catData.icon}`}
               alt=""
               className="w-7 h-7 object-contain"
               onError={(e) => (e.target.style.display = "none")}
@@ -170,7 +170,7 @@ function FlatStatRow({ stat, stats, onUpdate }) {
       <div className="flex items-center space-x-3.5 flex-1 min-w-0">
         {stat.icon && (
           <img
-            src={`/${stat.icon}`}
+            src={`${import.meta.env.BASE_URL}${stat.icon}`}
             alt=""
             className="w-9 h-9 object-contain p-1 bg-white/5 border border-white/10 rounded-xl flex-shrink-0"
             onError={(e) => (e.target.style.display = "none")}
@@ -283,7 +283,7 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
       <div className="w-full aspect-[1/1] bg-gray-950 relative flex items-center justify-center overflow-hidden">
         {backingSrc ? (
           <img
-            src={`/${backingSrc}`}
+            src={`${import.meta.env.BASE_URL}${backingSrc}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             onError={(e) => (e.target.style.display = "none")}
@@ -294,7 +294,7 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
 
         {typeSrc && (
           <img
-            src={`/${typeSrc}`}
+            src={`${import.meta.env.BASE_URL}${typeSrc}`}
             alt={stat.name}
             className={`${imageSizeClass} object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] ${
               isLocked ? "opacity-35" : ""

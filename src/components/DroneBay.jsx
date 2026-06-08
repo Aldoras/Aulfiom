@@ -42,7 +42,7 @@ export default function DroneBay({ catData, stats, onUpdateField }) {
               <div className="flex flex-col items-center text-center gap-1.5 flex-shrink-0">
                 <div className="relative group">
                   <img
-                    src={`/${drone.icon}`}
+                    src={`${import.meta.env.BASE_URL}${drone.icon}`}
                     alt={drone.name}
                     className={`w-14 h-14 object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] transition-all ${
                       active ? "scale-105" : "grayscale opacity-70"

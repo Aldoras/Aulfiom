@@ -60,7 +60,7 @@ export default function Header({
       {/* Title */}
       <div className="flex items-center space-x-3">
         <img
-          src="/icons/menus/Prestige.webp"
+          src={`${import.meta.env.BASE_URL}icons/menus/Prestige.webp`}
           alt="Obelisk"
           className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] animate-pulse"
         />
