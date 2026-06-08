@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { generateShareLink } from "../stats/sharing.js";
-import { Share2, Check, LogIn, LogOut, Loader2, Award, Cpu, Star } from "lucide-react";
+import { Share2, Check, LogIn, LogOut, Loader2, Award, Cpu, Star, Cloud, CloudOff, CloudLightning, CloudUpload } from "lucide-react";
 
 export default function Header({
   stats,
@@ -8,6 +8,9 @@ export default function Header({
   onGoogleSignIn,
   onGoogleSignOut,
   googleLibrariesReady,
+  syncStatus = "none",
+  onOpenConflictModal,
+  onTriggerSync,
 }) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -111,6 +114,60 @@ export default function Header({
           )}
           <span>{copied ? "Link Copied!" : "Share Character"}</span>
         </button>
+
+        {/* Cloud Sync Status */}
+        {googleToken && syncStatus !== "none" && (
+          <div className="flex items-center justify-center p-2 rounded-xl bg-white/5 border border-white/10 select-none">
+            {syncStatus === "checking" && (
+              <div className="flex items-center gap-2 text-xs text-indigo-300">
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                <span className="hidden sm:inline">Checking save...</span>
+              </div>
+            )}
+            {syncStatus === "syncing" && (
+              <div className="flex items-center gap-2 text-xs text-cyan-300">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                <span className="hidden sm:inline">Syncing...</span>
+              </div>
+            )}
+            {syncStatus === "pending" && (
+              <div
+                onClick={onTriggerSync}
+                className="flex items-center gap-2 text-xs text-indigo-300 cursor-pointer hover:text-white transition-colors"
+                title="Sync pending. Click to force sync now."
+              >
+                <CloudUpload className="w-4 h-4 text-indigo-400 animate-pulse" />
+                <span className="hidden sm:inline">Pending Sync</span>
+              </div>
+            )}
+            {syncStatus === "synced" && (
+              <div className="flex items-center gap-2 text-xs text-emerald-300" title="All changes saved to Google Drive.">
+                <Cloud className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Synced</span>
+              </div>
+            )}
+            {syncStatus === "conflict" && (
+              <button
+                onClick={onOpenConflictModal}
+                className="flex items-center gap-2 text-xs text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                title="Conflict detected between local and cloud save. Click to resolve."
+              >
+                <CloudLightning className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="hidden sm:inline font-bold">Conflict</span>
+              </button>
+            )}
+            {syncStatus === "error" && (
+              <button
+                onClick={onTriggerSync}
+                className="flex items-center gap-2 text-xs text-rose-300 hover:text-rose-200 transition-colors cursor-pointer"
+                title="Sync failed. Click to retry."
+              >
+                <CloudOff className="w-4 h-4 text-rose-400" />
+                <span className="hidden sm:inline">Sync Failed</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Google Authentication */}
         {!googleLibrariesReady ? (
