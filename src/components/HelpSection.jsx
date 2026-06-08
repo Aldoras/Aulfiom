@@ -11,7 +11,7 @@ export default function HelpSection() {
           <span>Wiki & Help Database</span>
         </h2>
         <p className="text-sm text-gray-400 mt-1">
-          Learn how to use the statistics hub and share characters with fellow players.
+          Learn how to use the ACLIOM linker and share characters with fellow players.
         </p>
       </div>
 

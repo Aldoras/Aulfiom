@@ -66,9 +66,9 @@ export default function Header({
         />
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            Idle Obelisk Miner <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Community Hub</span>
+            ACLIOM <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Community Linker</span>
           </h1>
-          <p className="text-xs text-gray-400">Track your stats, view character builds, and export to calculators</p>
+          <p className="text-xs text-gray-400">Aldoras's Community Linker for Idle Obelisk Miner — track stats, view builds, and export</p>
         </div>
       </div>
 

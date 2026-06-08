@@ -339,7 +339,7 @@ export default function AdminPanel() {
   // Serialize to code
   const handleExport = () => {
     const varName = getVarName(category.id);
-    const code = `// Automatically generated schema configuration for Idle Obelisk Miner Hub\nexport const ${varName} = ${JSON.stringify(
+    const code = `// Automatically generated schema configuration for ACLIOM\nexport const ${varName} = ${JSON.stringify(
       category,
       null,
       2
