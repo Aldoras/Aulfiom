@@ -350,44 +350,46 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Sticky Top Nav */}
-      <Header
-        stats={previewStats || stats}
-        googleToken={googleToken}
-        onGoogleSignIn={handleGoogleSignIn}
-        onGoogleSignOut={handleGoogleSignOut}
-        googleLibrariesReady={googleLibrariesReady}
-        syncStatus={syncStatus}
-        onOpenConflictModal={() => setShowConflictModal(true)}
-        onTriggerSync={() => triggerSyncToCloud()}
-      />
+      {/* Sticky Top Header & Preview Banner wrapper */}
+      <div className="sticky top-0 z-40 w-full flex flex-col">
+        <Header
+          stats={previewStats || stats}
+          googleToken={googleToken}
+          onGoogleSignIn={handleGoogleSignIn}
+          onGoogleSignOut={handleGoogleSignOut}
+          googleLibrariesReady={googleLibrariesReady}
+          syncStatus={syncStatus}
+          onOpenConflictModal={() => setShowConflictModal(true)}
+          onTriggerSync={() => triggerSyncToCloud()}
+        />
 
-      {/* Preview Mode Banner */}
-      {previewStats && (
-        <div className="bg-gradient-to-r from-cyan-950 to-indigo-950 border-b border-cyan-500/20 text-cyan-200 text-xs px-6 py-2.5 flex items-center justify-between gap-4 select-none animate-fade-in shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse animate-ping shrink-0" />
-            <span>Preview Mode — editing shared stats is temporary and will not modify your local vault.</span>
+        {/* Preview Mode Banner */}
+        {previewStats && (
+          <div className="bg-gradient-to-r from-cyan-950 to-indigo-950 border-b border-cyan-500/20 text-cyan-200 text-xs px-6 py-2.5 flex items-center justify-between gap-4 select-none animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse animate-ping shrink-0" />
+              <span>Preview Mode — editing shared stats is temporary and will not modify your local vault.</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setSharedStats(previewStats);
+                  setPreviewStats(null);
+                }}
+                className="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-100 hover:text-white font-bold transition-all text-xs cursor-pointer"
+              >
+                Import Stats
+              </button>
+              <button
+                onClick={() => setPreviewStats(null)}
+                className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-xs cursor-pointer"
+              >
+                Exit Preview
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setSharedStats(previewStats);
-                setPreviewStats(null);
-              }}
-              className="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-100 hover:text-white font-bold transition-all text-xs cursor-pointer"
-            >
-              Import Stats
-            </button>
-            <button
-              onClick={() => setPreviewStats(null)}
-              className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-xs cursor-pointer"
-            >
-              Exit Preview
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Area */}
       <div className="flex-1 flex flex-col md:flex-row">

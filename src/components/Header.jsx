@@ -59,7 +59,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <header className="w-full glass-panel border-b border-white/10 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
       {/* Title */}
       <div className="flex items-center space-x-3">
         <img
