@@ -17,9 +17,10 @@ export default function Header({
     if (!stats) return { drones: 0, cards: 0, skills: 0 };
 
     let dronesActive = 0;
-    const dronesGroup = stats.drones ?? {};
-    Object.values(dronesGroup).forEach((drone) => {
-      if (drone?.active) dronesActive++;
+    Object.values(stats ?? {}).forEach((val) => {
+      if (val && typeof val === "object" && val.active) {
+        dronesActive++;
+      }
     });
 
     let cardsUnlocked = 0;

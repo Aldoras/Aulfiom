@@ -15,15 +15,15 @@ export default function StatPanel({ catData, stats, onUpdateField }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-4xl mx-auto">
       {/* Category Header */}
-      <div>
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+      <div className="flex flex-col items-center text-center gap-2">
+        <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           {catData.icon && (
             <img
               src={`/${catData.icon}`}
               alt=""
-              className="w-6 h-6 object-contain"
+              className="w-7 h-7 object-contain"
               onError={(e) => (e.target.style.display = "none")}
             />
           )}
@@ -33,11 +33,11 @@ export default function StatPanel({ catData, stats, onUpdateField }) {
 
       {/* Tabs */}
       {hasTabs && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col items-center gap-2">
           <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider select-none opacity-80">
             Sections
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {catData.tabs.map((tab) => {
               const isActive = activeTabId === tab.id;
               return (
@@ -165,29 +165,29 @@ function FlatStatRow({ stat, stats, onUpdate }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-1.5 px-3 rounded-xl border border-white/5 bg-gray-900/20 hover:border-white/10 transition-all gap-2">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-3 px-4 rounded-2xl border border-white/5 bg-gray-900/20 hover:border-white/10 transition-all gap-3">
       {/* Icon & Details */}
-      <div className="flex items-center space-x-2.5 flex-1 min-w-0">
+      <div className="flex items-center space-x-3.5 flex-1 min-w-0">
         {stat.icon && (
           <img
             src={`/${stat.icon}`}
             alt=""
-            className="w-7 h-7 object-contain p-0.5 bg-white/5 border border-white/10 rounded-lg flex-shrink-0"
+            className="w-9 h-9 object-contain p-1 bg-white/5 border border-white/10 rounded-xl flex-shrink-0"
             onError={(e) => (e.target.style.display = "none")}
           />
         )}
         <div className="min-w-0">
-          <h4 className="text-xs font-bold text-white truncate">{stat.name ?? stat.key}</h4>
-          {stat.desc && <p className="text-[9px] text-gray-400 leading-normal line-clamp-1">{stat.desc}</p>}
+          <h4 className="text-sm font-bold text-white truncate">{stat.name ?? stat.key}</h4>
+          {stat.desc && <p className="text-xs text-gray-400 leading-normal line-clamp-1">{stat.desc}</p>}
         </div>
       </div>
 
       {/* Input controls (Sliders + precision input box) */}
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+      <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
         {isRange && (
-          <div className="flex items-center gap-1.5 w-full sm:w-48 max-w-[200px]">
+          <div className="flex items-center gap-2 w-full sm:w-56 max-w-[240px]">
             {/* Slider Min Bound */}
-            <span className="text-[9px] text-gray-500 font-bold w-4 text-right select-none">{min}</span>
+            <span className="text-[10px] text-gray-400 font-bold w-5 text-right select-none">{min}</span>
             <input
               type="range"
               min={min}
@@ -195,35 +195,34 @@ function FlatStatRow({ stat, stats, onUpdate }) {
               step={step}
               value={val}
               onChange={handleSliderChange}
-              className="flex-1 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              className="flex-1 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
             {/* Slider Max Bound */}
-            <span className="text-[9px] text-gray-500 font-bold w-4 text-left select-none">{max}</span>
+            <span className="text-[10px] text-gray-400 font-bold w-5 text-left select-none">{max}</span>
           </div>
         )}
 
         {stat.type === "checkbox" ? (
           <button
             onClick={() => onUpdate(stat.key, !val)}
-            className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all ${
+            className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all cursor-pointer ${
               val ? "bg-indigo-600" : "bg-white/10"
             }`}
           >
             <div
-              className={`bg-white w-4 h-4 rounded-full shadow transform transition-all ${
+              className={`bg-white w-5 h-5 rounded-full shadow transform transition-all ${
                 val ? "translate-x-4" : ""
               }`}
             />
           </button>
         ) : (
-          <div className="flex items-center gap-1.5">
-            {/* Min-max label text shown next to plain text input box if slider is disabled */}
+          <div className="flex items-center gap-2">
             {!isRange && hasRangeLimits && (
-              <span className="text-[9px] text-gray-500 font-bold select-none">
+              <span className="text-[10px] text-gray-400 font-bold select-none">
                 ({min}-{max})
               </span>
             )}
-            <div className="flex items-center border border-white/10 bg-gray-950/60 rounded-lg px-2 py-0.5 focus-within:border-indigo-500 transition-all gap-1">
+            <div className="flex items-center border border-white/10 bg-gray-950/60 rounded-xl px-2.5 py-1 focus-within:border-indigo-500 transition-all gap-1.5">
               <input
                 type="number"
                 min={min}
@@ -231,9 +230,9 @@ function FlatStatRow({ stat, stats, onUpdate }) {
                 step={step}
                 value={val}
                 onChange={handleTextChange}
-                className="w-10 text-right bg-transparent text-xs text-white font-semibold outline-none"
+                className="w-12 text-right bg-transparent text-xs text-white font-semibold outline-none"
               />
-              {unitLabel && <span className="text-[9px] text-gray-500 font-semibold">{unitLabel}</span>}
+              {unitLabel && <span className="text-[10px] text-gray-400 font-semibold">{unitLabel}</span>}
             </div>
           </div>
         )}

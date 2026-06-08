@@ -33,7 +33,13 @@ export function loadStats(schema) {
           }
         } else {
           const def = s.defaultValue ?? s.default ?? defaultForType(s.type);
-          stats[s.key] = stored[s.key] ?? def;
+          let val = stored[s.key];
+          if (val === undefined && s.type === "drone") {
+            val = stored["drones"]?.[s.key];
+          }
+          stats[s.key] = val !== undefined
+            ? val
+            : (typeof def === "object" ? JSON.parse(JSON.stringify(def)) : def);
         }
       }
     }
@@ -57,6 +63,7 @@ function safeParse(text) {
 export function defaultForType(type) {
   if (type === "checkbox") return false;
   if (type === "toggle") return 0;
+  if (type === "drone") return { level: 0, grade: 0, active: false, fueled: false };
   return 0; // number
 }
 

@@ -172,6 +172,15 @@ export default function AdminPanel() {
         fields: [{ key: "level", name: "Level", type: "number", default: 0 }]
       };
     }
+    if (type === "drone") {
+      return {
+        key,
+        name: "New Drone",
+        type: "drone",
+        icon: "icons/drones/Drone_Bear.png",
+        default: { level: 0, grade: 0, active: false, fueled: false }
+      };
+    }
     if (type === "section") {
       return { type: "section", name: "New Section", stats: [] };
     }
@@ -625,34 +634,40 @@ export default function AdminPanel() {
               onReorderStat={(sIdx, direction) => handleReorderStat(sIdx, direction)}
               openIconPicker={openIconPicker}
             />
-            <div className="flex items-center gap-2 pt-3">
+            <div className="flex items-center gap-2 pt-3 flex-wrap">
               <button
                 onClick={() => handleAddStat(null, "number")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
               >
                 + Add Slider / Number
               </button>
               <button
                 onClick={() => handleAddStat(null, "toggle")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
               >
                 + Add Toggle Card
               </button>
               <button
                 onClick={() => handleAddStat(null, "checkbox")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
               >
                 + Add Checkbox
               </button>
               <button
+                onClick={() => handleAddStat(null, "drone")}
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
+              >
+                + Add Drone
+              </button>
+              <button
                 onClick={() => handleAddStat(null, "group")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
               >
                 + Add Group (Drones)
               </button>
               <button
                 onClick={() => handleAddStat(null, "section")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
               >
                 + Add Section (Accordion)
               </button>
@@ -831,6 +846,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <option value="reduction">Reduction (-%)</option>
                 <option value="checkbox">Checkbox</option>
                 <option value="toggle">Toggle Card</option>
+                <option value="drone">Drone</option>
                 <option value="group">Group (Drone Bay)</option>
                 <option value="section">Section (Accordion)</option>
               </select>
