@@ -23,8 +23,35 @@ const CLIENT_ID = "327402550159-ij11pkr61ukgirnm8eomvcgt5vobveb4.apps.googleuser
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
 
 export default function App() {
-  const [stats, setStats] = useState(() => loadStats(statSchema));
   const [activeCategory, setActiveCategory] = useState("drones");
+
+  // Get active schema list, applying any custom localStorage overrides
+  const getActiveSchema = () => {
+    return statSchema.map((category) => {
+      const saved = localStorage.getItem(`schemaOverride_${category.id}`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error(`Failed to parse active override schema for ${category.id}:`, e);
+        }
+      }
+      return category;
+    });
+  };
+
+  const [activeSchema, setActiveSchema] = useState(() => getActiveSchema());
+  const [stats, setStats] = useState(() => loadStats(activeSchema));
+
+  // Refresh schema overrides when changing categories
+  useEffect(() => {
+    const freshSchema = getActiveSchema();
+    setActiveSchema(freshSchema);
+    setStats((prev) => {
+      const freshDefaults = loadStats(freshSchema);
+      return { ...freshDefaults, ...prev };
+    });
+  }, [activeCategory]);
   const [googleToken, setGoogleToken] = useState(null);
   const [googleLibrariesReady, setGoogleLibrariesReady] = useState(false);
   const [sharedStats, setSharedStats] = useState(null);
@@ -131,7 +158,7 @@ export default function App() {
         <SheetsExporter
           googleToken={googleToken}
           stats={stats}
-          schema={statSchema}
+          schema={activeSchema}
           onGoogleSignIn={handleGoogleSignIn}
         />
       );
@@ -145,7 +172,7 @@ export default function App() {
       return <AdminPanel />;
     }
 
-    const catData = statSchema.find((c) => c.id === activeCategory);
+    const catData = activeSchema.find((c) => c.id === activeCategory);
     if (!catData) return <div className="text-gray-400">Category not found</div>;
 
     if (activeCategory === "drones") {
@@ -204,7 +231,7 @@ export default function App() {
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Navigation Sidebar */}
         <Sidebar
-          schema={statSchema}
+          schema={activeSchema}
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
         />

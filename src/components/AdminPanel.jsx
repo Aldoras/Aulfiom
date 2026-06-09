@@ -10,6 +10,30 @@ function getVarName(catId) {
   return `${clean}Category`;
 }
 
+// Generate camelCase key from display name with type suffix
+function generateKeyFromDisplayName(name, type) {
+  if (!name) return "";
+  const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
+  
+  const camel = words
+    .map((word, i) => {
+      const lower = word.toLowerCase();
+      if (i === 0) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join("");
+  
+  const suffix = type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
+  
+  if (suffix && camel.toLowerCase().endsWith(suffix.toLowerCase())) {
+    const base = camel.slice(0, -suffix.length);
+    return `${base}${suffix}`;
+  }
+  return `${camel}${suffix}`;
+}
+
 export default function AdminPanel() {
   const [selectedCatId, setSelectedCatId] = useState(statSchema[0]?.id || "");
   const [category, setCategory] = useState(() => JSON.parse(JSON.stringify(statSchema[0] || {})));
@@ -73,6 +97,15 @@ export default function AdminPanel() {
         setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
       }
     } else {
+      const saved = localStorage.getItem(`schemaOverride_${catId}`);
+      if (saved) {
+        try {
+          setCategory(JSON.parse(saved));
+          return;
+        } catch (e) {
+          console.error(`Failed to parse override for ${catId}:`, e);
+        }
+      }
       const match = statSchema.find((c) => c.id === catId);
       if (match) {
         setCategory(JSON.parse(JSON.stringify(match)));
@@ -81,15 +114,29 @@ export default function AdminPanel() {
   };
 
   const handleSaveLiveSchema = () => {
-    localStorage.setItem("gameStatsSchemaConfig", JSON.stringify(category));
+    if (selectedCatId === "gameStats") {
+      localStorage.setItem("gameStatsSchemaConfig", JSON.stringify(category));
+    } else {
+      localStorage.setItem(`schemaOverride_${selectedCatId}`, JSON.stringify(category));
+    }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
   const handleResetToDefault = () => {
-    if (window.confirm("Are you sure you want to discard your custom changes and reset the Game Stats schema to default?")) {
-      localStorage.removeItem("gameStatsSchemaConfig");
-      setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
+    const isGameStats = selectedCatId === "gameStats";
+    const displayName = isGameStats ? "Game Stats" : (category.name || "category");
+    if (window.confirm(`Are you sure you want to discard your custom changes and reset the ${displayName} schema to default?`)) {
+      if (isGameStats) {
+        localStorage.removeItem("gameStatsSchemaConfig");
+        setCategory(JSON.parse(JSON.stringify(gameStatsCategory)));
+      } else {
+        localStorage.removeItem(`schemaOverride_${selectedCatId}`);
+        const match = statSchema.find((c) => c.id === selectedCatId);
+        if (match) {
+          setCategory(JSON.parse(JSON.stringify(match)));
+        }
+      }
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
     }
@@ -152,6 +199,20 @@ export default function AdminPanel() {
   // Stat item creators
   const createDefaultStat = (type) => {
     const key = `newField_${Date.now().toString().slice(-4)}`;
+    if (type === "skill") {
+      return {
+        key: `${key}Skill`,
+        name: "New Skill Node",
+        type: "skill",
+        typeImage: "icons/skill_tree/Lucky_Strikes.webp",
+        default: 0,
+        states: 2,
+        x: 50,
+        y: 50,
+        prereqs: [],
+        hasCrystals: false
+      };
+    }
     if (type === "number") {
       return { key, name: "New Slider Stat", type: "number", default: 0, min: 0, max: 100, step: 1, input: "slider" };
     }
@@ -390,7 +451,7 @@ export default function AdminPanel() {
         </div>
 
         <div className="flex gap-2">
-          {selectedCatId === "gameStats" && (
+          {selectedCatId !== "new" && (
             <>
               <button
                 onClick={handleSaveLiveSchema}
@@ -626,36 +687,48 @@ export default function AdminPanel() {
               openIconPicker={openIconPicker}
             />
             <div className="flex items-center gap-2 pt-3">
-              <button
-                onClick={() => handleAddStat(null, "number")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
-              >
-                + Add Slider / Number
-              </button>
-              <button
-                onClick={() => handleAddStat(null, "toggle")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
-              >
-                + Add Toggle Card
-              </button>
-              <button
-                onClick={() => handleAddStat(null, "checkbox")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
-              >
-                + Add Checkbox
-              </button>
-              <button
-                onClick={() => handleAddStat(null, "group")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
-              >
-                + Add Group (Drones)
-              </button>
-              <button
-                onClick={() => handleAddStat(null, "section")}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
-              >
-                + Add Section (Accordion)
-              </button>
+              {category.id === "skillTree" ? (
+                <button
+                  onClick={() => handleAddStat(null, "skill")}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Skill Node</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleAddStat(null, "number")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                  >
+                    + Add Slider / Number
+                  </button>
+                  <button
+                    onClick={() => handleAddStat(null, "toggle")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                  >
+                    + Add Toggle Card
+                  </button>
+                  <button
+                    onClick={() => handleAddStat(null, "checkbox")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                  >
+                    + Add Checkbox
+                  </button>
+                  <button
+                    onClick={() => handleAddStat(null, "group")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                  >
+                    + Add Group (Drones)
+                  </button>
+                  <button
+                    onClick={() => handleAddStat(null, "section")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                  >
+                    + Add Section (Accordion)
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -738,6 +811,7 @@ function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onR
           availableTabs={availableTabs}
           currentTabId={currentTabId}
           openIconPicker={openIconPicker}
+          allItems={list}
         />
       ))}
     </div>
@@ -745,7 +819,7 @@ function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onR
 }
 
 /* ----------------------- Individual Stat Editor Card ----------------------- */
-function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorder, isFirst, isLast, onMoveToTab, availableTabs, currentTabId, openIconPicker }) {
+function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorder, isFirst, isLast, onMoveToTab, availableTabs, currentTabId, openIconPicker, allItems }) {
   // Sections are expanded by default for discoverability
   const [isExpanded, setIsExpanded] = useState(stat.type === "section");
 
@@ -833,21 +907,9 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <option value="toggle">Toggle Card</option>
                 <option value="group">Group (Drone Bay)</option>
                 <option value="section">Section (Accordion)</option>
+                <option value="skill">Skill Tree Node</option>
               </select>
             </div>
-
-            {!isSection && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Field Key</label>
-                <input
-                  type="text"
-                  value={stat.key || ""}
-                  onChange={(e) => onChange("key", e.target.value)}
-                  placeholder="e.g. tin_ore_card"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-            )}
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-gray-400 uppercase">{isSection ? "Section Name" : "Display Name"}</label>
@@ -859,6 +921,32 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
               />
             </div>
+
+            {!isSection && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Field Key</label>
+                <div className="flex gap-1.5 items-center">
+                  <input
+                    type="text"
+                    value={stat.key || ""}
+                    onChange={(e) => onChange("key", e.target.value)}
+                    placeholder="e.g. tin_ore_card"
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newKey = generateKeyFromDisplayName(stat.name, stat.type);
+                      if (newKey) onChange("key", newKey);
+                    }}
+                    className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                    title="Generate key from display name"
+                  >
+                    Generate
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Move to Tab Option */}
             {availableTabs && availableTabs.length > 1 && (
@@ -882,7 +970,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
             )}
           </div>
 
-          {!isSection && (
+          {!isSection && stat.type !== "skill" && (
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Icon Link</label>
@@ -1121,6 +1209,84 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
             </div>
           )}
 
+          {/* Conditional: Skill Nodes */}
+          {stat.type === "skill" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1.5 border-t border-white/5 items-end">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">X Coordinate (px)</label>
+                <input
+                  type="number"
+                  value={stat.x ?? 50}
+                  onChange={(e) => onChange("x", parseInt(e.target.value) || 0)}
+                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Y Coordinate (px)</label>
+                <input
+                  type="number"
+                  value={stat.y ?? 50}
+                  onChange={(e) => onChange("y", parseInt(e.target.value) || 0)}
+                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                />
+              </div>
+              
+              <PrerequisitesSelector
+                stat={stat}
+                allItems={allItems}
+                onChange={onChange}
+              />
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">States (Count)</label>
+                <input
+                  type="number"
+                  value={stat.states ?? 2}
+                  onChange={(e) => onChange("states", parseInt(e.target.value) || 2)}
+                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pb-2 h-[34px]">
+                <input
+                  type="checkbox"
+                  id={`hasCrystals_${stat.key}`}
+                  checked={!!stat.hasCrystals}
+                  onChange={(e) => onChange("hasCrystals", e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-gray-950 accent-indigo-600 outline-none cursor-pointer"
+                />
+                <label htmlFor={`hasCrystals_${stat.key}`} className="text-xs font-bold text-gray-300 cursor-pointer select-none">
+                  Has Crystals
+                </label>
+              </div>
+
+              <div className="space-y-1 col-span-1 sm:col-span-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Overlay Image</label>
+                <div className="flex gap-1.5 items-center">
+                  {stat.typeImage && (
+                    <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
+                      <img src={`/${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={stat.typeImage || ""}
+                    onChange={(e) => onChange("typeImage", e.target.value)}
+                    placeholder="e.g. icons/skill_tree/Lucky_Strikes.webp"
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openIconPicker(`Select Overlay for ${stat.name || 'Skill'}`, (path) => onChange("typeImage", path))}
+                    className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                  >
+                    Browse
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Group details (drones) */}
           {isGroup && (
             <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-2">
@@ -1132,6 +1298,93 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ----------------------- Prerequisites Autocomplete Selector ----------------------- */
+function PrerequisitesSelector({ stat, allItems, onChange }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const prereqs = stat.prereqs || [];
+  
+  const otherSkills = (allItems || [])
+    .filter((s) => s.type === "skill" && s.key !== stat.key && s.key && !prereqs.includes(s.key));
+  
+  const filteredSkills = otherSkills.filter((s) => 
+    (s.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-1 col-span-1 sm:col-span-2 relative">
+      <label className="text-[10px] font-bold text-gray-400 uppercase block">Prerequisites</label>
+      
+      {/* Selected Tags list */}
+      <div className="flex flex-wrap gap-1.5 mb-1.5 min-h-[20px] items-center">
+        {prereqs.map((key) => {
+          const matchedNode = (allItems || []).find((s) => s.key === key);
+          const displayName = matchedNode ? (matchedNode.name || matchedNode.key) : key;
+          return (
+            <span key={key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/25 border border-indigo-500/30 text-[10px] font-semibold text-indigo-300">
+              <span>{displayName}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextPrereqs = prereqs.filter((k) => k !== key);
+                  onChange("prereqs", nextPrereqs);
+                }}
+                className="hover:text-white font-bold ml-0.5 cursor-pointer text-xs focus:outline-none"
+              >
+                ×
+              </button>
+            </span>
+          );
+        })}
+        {prereqs.length === 0 && (
+          <span className="text-[10px] text-gray-500 italic">No prerequisites (Starting Node)</span>
+        )}
+      </div>
+
+      {/* Search Input */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Type to search and add prerequisite..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => {
+            // Delay closing to allow clicks to register on dropdown items
+            setTimeout(() => setIsOpen(false), 200);
+          }}
+          className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+        />
+        
+        {isOpen && filteredSkills.length > 0 && (
+          <div className="absolute left-0 right-0 mt-1 max-h-36 overflow-y-auto border border-white/15 rounded-lg bg-gray-950 shadow-xl z-50 scrollbar-thin divide-y divide-white/5">
+            {filteredSkills.map((other) => (
+              <button
+                key={other.key}
+                type="button"
+                onClick={() => {
+                  onChange("prereqs", [...prereqs, other.key]);
+                  setSearchTerm("");
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 hover:bg-indigo-600/20 text-gray-300 hover:text-white text-xs transition-colors flex justify-between items-center cursor-pointer"
+              >
+                <span className="font-semibold">{other.name || other.key}</span>
+                <span className="text-[9px] text-gray-500 font-mono">({other.key})</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
