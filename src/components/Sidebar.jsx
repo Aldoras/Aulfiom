@@ -57,7 +57,7 @@ export default function Sidebar({
                 >
                   {cat.icon ? (
                     <img
-                      src={`/${cat.icon}`}
+                      src={`${import.meta.env.BASE_URL}${cat.icon}`}
                       alt=""
                       className="w-5 h-5 object-contain flex-shrink-0"
                       onError={(e) => {

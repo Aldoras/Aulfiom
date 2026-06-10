@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { generateShareLink } from "../stats/sharing.js";
-import { Share2, Check, LogIn, LogOut, Loader2, Award, Cpu, Star } from "lucide-react";
+import { Share2, Check, LogIn, LogOut, Loader2, Award, Cpu, Star, Cloud, CloudOff, CloudLightning, CloudUpload } from "lucide-react";
 
 export default function Header({
   stats,
@@ -8,6 +8,9 @@ export default function Header({
   onGoogleSignIn,
   onGoogleSignOut,
   googleLibrariesReady,
+  syncStatus = "none",
+  onOpenConflictModal,
+  onTriggerSync,
 }) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -17,9 +20,10 @@ export default function Header({
     if (!stats) return { drones: 0, cards: 0, skills: 0 };
 
     let dronesActive = 0;
-    const dronesGroup = stats.drones ?? {};
-    Object.values(dronesGroup).forEach((drone) => {
-      if (drone?.active) dronesActive++;
+    Object.values(stats ?? {}).forEach((val) => {
+      if (val && typeof val === "object" && val.active) {
+        dronesActive++;
+      }
     });
 
     let cardsUnlocked = 0;
@@ -55,19 +59,19 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <header className="w-full glass-panel border-b border-white/10 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
       {/* Title */}
       <div className="flex items-center space-x-3">
         <img
-          src="/icons/menus/Prestige.webp"
+          src={`${import.meta.env.BASE_URL}icons/menus/Prestige.webp`}
           alt="Obelisk"
           className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] animate-pulse"
         />
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            Idle Obelisk Miner <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Community Hub</span>
+            ACLIOM <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Community Linker</span>
           </h1>
-          <p className="text-xs text-gray-400">Track your stats, view character builds, and export to calculators</p>
+          <p className="text-xs text-gray-400">Aldoras's Community Linker for Idle Obelisk Miner — track stats, view builds, and export</p>
         </div>
       </div>
 
@@ -110,6 +114,60 @@ export default function Header({
           )}
           <span>{copied ? "Link Copied!" : "Share Character"}</span>
         </button>
+
+        {/* Cloud Sync Status */}
+        {googleToken && syncStatus !== "none" && (
+          <div className="flex items-center justify-center p-2 rounded-xl bg-white/5 border border-white/10 select-none">
+            {syncStatus === "checking" && (
+              <div className="flex items-center gap-2 text-xs text-indigo-300">
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                <span className="hidden sm:inline">Checking save...</span>
+              </div>
+            )}
+            {syncStatus === "syncing" && (
+              <div className="flex items-center gap-2 text-xs text-cyan-300">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                <span className="hidden sm:inline">Syncing...</span>
+              </div>
+            )}
+            {syncStatus === "pending" && (
+              <div
+                onClick={onTriggerSync}
+                className="flex items-center gap-2 text-xs text-indigo-300 cursor-pointer hover:text-white transition-colors"
+                title="Sync pending. Click to force sync now."
+              >
+                <CloudUpload className="w-4 h-4 text-indigo-400 animate-pulse" />
+                <span className="hidden sm:inline">Pending Sync</span>
+              </div>
+            )}
+            {syncStatus === "synced" && (
+              <div className="flex items-center gap-2 text-xs text-emerald-300" title="All changes saved to Google Drive.">
+                <Cloud className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Synced</span>
+              </div>
+            )}
+            {syncStatus === "conflict" && (
+              <button
+                onClick={onOpenConflictModal}
+                className="flex items-center gap-2 text-xs text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                title="Conflict detected between local and cloud save. Click to resolve."
+              >
+                <CloudLightning className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span className="hidden sm:inline font-bold">Conflict</span>
+              </button>
+            )}
+            {syncStatus === "error" && (
+              <button
+                onClick={onTriggerSync}
+                className="flex items-center gap-2 text-xs text-rose-300 hover:text-rose-200 transition-colors cursor-pointer"
+                title="Sync failed. Click to retry."
+              >
+                <CloudOff className="w-4 h-4 text-rose-400" />
+                <span className="hidden sm:inline">Sync Failed</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Google Authentication */}
         {!googleLibrariesReady ? (

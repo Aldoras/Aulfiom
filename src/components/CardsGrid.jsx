@@ -107,34 +107,34 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
   };
 
   return (
-    <div className="space-y-4 font-jakarta">
+    <div className="space-y-6 font-jakarta max-w-4xl mx-auto">
       {/* Title & Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">{catData.name}</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Tap cards to cycle rarity tiers.</p>
-        </div>
+      <div className="flex flex-col items-center text-center gap-2">
+        <h2 className="text-2xl font-bold text-white tracking-tight">{catData.name}</h2>
+        <p className="text-xs text-gray-400">Tap cards to cycle rarity tiers.</p>
+      </div>
 
-        {/* Search */}
-        <div className="relative w-full lg:w-60">
-          <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-500" />
+      {/* Search */}
+      <div className="flex justify-center w-full">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-gray-500" />
           <input
             type="text"
             placeholder="Search cards..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-950/60 border border-white/10 hover:border-white/20 focus:border-indigo-500 text-xs text-white pl-8 pr-3 py-1.5 rounded-xl outline-none transition-all placeholder:text-gray-500"
+            className="w-full bg-gray-950/60 border border-white/10 hover:border-white/20 focus:border-indigo-500 text-xs text-white pl-10 pr-4 py-2 rounded-xl outline-none transition-all placeholder:text-gray-500"
           />
         </div>
       </div>
 
       {/* Section Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 pb-1">
         {sections.map((sec) => (
           <button
             key={sec}
             onClick={() => setActiveSection(sec)}
-            className={`px-3 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all border ${
+            className={`px-3 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all border cursor-pointer ${
               activeSection === sec
                 ? "bg-indigo-600 border-indigo-500 text-white"
                 : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
@@ -146,70 +146,72 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
       </div>
 
       {/* Card Grid (Exactly 9 columns like in-game layout) */}
-      <div className="grid grid-cols-9 gap-1.5 justify-start w-fit max-w-full overflow-x-auto pb-2">
-        {filteredCards.map((c) => {
-          const state = getCardVal(c.key, c.default ?? 0);
-          const states = Number(c.states ?? 2);
-          const backingSrc = (Array.isArray(c.images) ? c.images[state] : null) ?? c.icon ?? "";
-          const typeSrc = c.typeImage ?? "";
+      <div className="flex justify-center w-full overflow-x-auto pb-2 scrollbar-thin">
+        <div className="grid grid-cols-9 gap-2 w-fit">
+          {filteredCards.map((c) => {
+            const state = getCardVal(c.key, c.default ?? 0);
+            const states = Number(c.states ?? 2);
+            const backingSrc = (Array.isArray(c.images) ? c.images[state] : null) ?? c.icon ?? "";
+            const typeSrc = c.typeImage ?? "";
 
-          const { cardClass } = getRarityStyles(state, states);
-          const label = Array.isArray(c.labels) ? c.labels[state] : (state === 0 ? "Locked" : `Tier ${state}`);
-          const cardName = formatCardName(c.key);
+            const { cardClass } = getRarityStyles(state, states);
+            const label = Array.isArray(c.labels) ? c.labels[state] : (state === 0 ? "Locked" : `Tier ${state}`);
+            const cardName = formatCardName(c.key);
 
-          return (
-            <button
-              key={c.key}
-              onClick={() => handleCardClick(c)}
-              title={`${cardName} (${label})`}
-              className={`group w-[44px] h-[60px] rounded-lg border overflow-hidden transition-all duration-200 transform active:scale-95 glass-panel select-none relative flex-shrink-0 ${cardClass}`}
-            >
-              {/* Backing Image container */}
-              <div className="absolute inset-0 w-full h-full bg-gray-950">
-                {backingSrc ? (
+            return (
+              <button
+                key={c.key}
+                onClick={() => handleCardClick(c)}
+                title={`${cardName} (${label})`}
+                className={`group w-[44px] h-[60px] rounded-lg border overflow-hidden transition-all duration-200 transform active:scale-95 glass-panel select-none relative flex-shrink-0 cursor-pointer ${cardClass}`}
+              >
+                {/* Backing Image container */}
+                <div className="absolute inset-0 w-full h-full bg-gray-950">
+                  {backingSrc ? (
+                    <img
+                      src={`${import.meta.env.BASE_URL}${backingSrc}`}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/20 to-gray-950" />
+                  )}
+                </div>
+
+                {/* Overlaid Type Image (centered) */}
+                {typeSrc && (
                   <img
-                    src={`/${backingSrc}`}
+                    src={`${import.meta.env.BASE_URL}${typeSrc}`}
                     alt=""
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    className={`absolute inset-0 m-auto w-[24px] h-[24px] object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
+                      state === 0 ? "opacity-35" : ""
+                    }`}
                     onError={(e) => {
-                      e.target.style.display = "none";
+                      e.target.style.visibility = "hidden";
                     }}
                   />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/20 to-gray-950" />
                 )}
-              </div>
 
-              {/* Overlaid Type Image (w-[24px] h-[24px] centered) */}
-              {typeSrc && (
-                <img
-                  src={`/${typeSrc}`}
-                  alt=""
-                  className={`absolute inset-0 m-auto w-[24px] h-[24px] object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
-                    state === 0 ? "opacity-35" : ""
-                  }`}
-                  onError={(e) => {
-                    e.target.style.visibility = "hidden";
-                  }}
-                />
-              )}
+                {/* Lock Overlay */}
+                {state === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
+                    <Lock className="w-2.5 h-2.5 text-gray-400" />
+                  </div>
+                )}
 
-              {/* Lock Overlay */}
-              {state === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
-                  <Lock className="w-2.5 h-2.5 text-gray-400" />
-                </div>
-              )}
-
-              {/* Card Level Badge */}
-              {state > 0 && (
-                <div className="absolute bottom-0.5 right-0.5 px-0.5 py-px rounded bg-black/85 border border-white/10 text-[7px] font-bold text-white z-20 leading-none">
-                  {state}
-                </div>
-              )}
-            </button>
-          );
-        })}
+                {/* Card Level Badge */}
+                {state > 0 && (
+                  <div className="absolute bottom-0.5 right-0.5 px-0.5 py-px rounded bg-black/85 border border-white/10 text-[7px] font-bold text-white z-20 leading-none">
+                    {state}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {filteredCards.length === 0 && (

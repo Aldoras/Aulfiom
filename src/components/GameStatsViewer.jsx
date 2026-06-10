@@ -540,11 +540,11 @@ export default function GameStatsViewer({ catData }) {
                     {/* Stat Icon */}
                     <div className="w-11 h-11 rounded-xl bg-gray-950 flex items-center justify-center p-1 border border-white/10 shrink-0 select-none">
                       <img
-                        src={`/${stat.icon || "icons/menus/Prestige.webp"}`}
+                        src={`${import.meta.env.BASE_URL}${stat.icon || "icons/menus/Prestige.webp"}`}
                         alt=""
                         className="max-w-full max-h-full object-contain filter drop-shadow select-none"
                         onError={(e) => {
-                          e.target.src = "/icons/menus/Prestige.webp";
+                          e.target.src = `${import.meta.env.BASE_URL}icons/menus/Prestige.webp`;
                         }}
                       />
                     </div>

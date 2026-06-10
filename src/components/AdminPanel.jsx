@@ -233,6 +233,15 @@ export default function AdminPanel() {
         fields: [{ key: "level", name: "Level", type: "number", default: 0 }]
       };
     }
+    if (type === "drone") {
+      return {
+        key,
+        name: "New Drone",
+        type: "drone",
+        icon: "icons/drones/Drone_Bear.png",
+        default: { level: 0, grade: 0, active: false, fueled: false }
+      };
+    }
     if (type === "section") {
       return { type: "section", name: "New Section", stats: [] };
     }
@@ -391,7 +400,7 @@ export default function AdminPanel() {
   // Serialize to code
   const handleExport = () => {
     const varName = getVarName(category.id);
-    const code = `// Automatically generated schema configuration for Idle Obelisk Miner Hub\nexport const ${varName} = ${JSON.stringify(
+    const code = `// Automatically generated schema configuration for ACLIOM\nexport const ${varName} = ${JSON.stringify(
       category,
       null,
       2
@@ -512,7 +521,7 @@ export default function AdminPanel() {
             <div className="flex gap-2 items-center">
               {category.icon && (
                 <div className="w-8 h-8 rounded-lg bg-gray-950 flex items-center justify-center p-1 border border-white/10 shrink-0">
-                  <img src={`/${category.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                  <img src={`${import.meta.env.BASE_URL}${category.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                 </div>
               )}
               <input
@@ -686,7 +695,7 @@ export default function AdminPanel() {
               onReorderStat={(sIdx, direction) => handleReorderStat(sIdx, direction)}
               openIconPicker={openIconPicker}
             />
-            <div className="flex items-center gap-2 pt-3">
+            <div className="flex items-center gap-2 pt-3 flex-wrap">
               {category.id === "skillTree" ? (
                 <button
                   onClick={() => handleAddStat(null, "skill")}
@@ -699,36 +708,43 @@ export default function AdminPanel() {
                 <>
                   <button
                     onClick={() => handleAddStat(null, "number")}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
                   >
                     + Add Slider / Number
                   </button>
                   <button
                     onClick={() => handleAddStat(null, "toggle")}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
                   >
                     + Add Toggle Card
                   </button>
                   <button
                     onClick={() => handleAddStat(null, "checkbox")}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
                   >
                     + Add Checkbox
                   </button>
                   <button
+                    onClick={() => handleAddStat(null, "drone")}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
+                  >
+                    + Add Drone
+                  </button>
+                  <button
                     onClick={() => handleAddStat(null, "group")}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
                   >
                     + Add Group (Drones)
                   </button>
                   <button
                     onClick={() => handleAddStat(null, "section")}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-gray-300 border border-white/5 cursor-pointer"
                   >
                     + Add Section (Accordion)
                   </button>
                 </>
               )}
+            </div>
             </div>
           </div>
         )}
@@ -905,6 +921,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <option value="reduction">Reduction (-%)</option>
                 <option value="checkbox">Checkbox</option>
                 <option value="toggle">Toggle Card</option>
+                <option value="drone">Drone</option>
                 <option value="group">Group (Drone Bay)</option>
                 <option value="section">Section (Accordion)</option>
                 <option value="skill">Skill Tree Node</option>
@@ -977,7 +994,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <div className="flex gap-1.5 items-center">
                   {stat.icon && (
                     <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
-                      <img src={`/${stat.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                      <img src={`${import.meta.env.BASE_URL}${stat.icon}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                     </div>
                   )}
                   <input
@@ -1187,7 +1204,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <div className="flex gap-1.5 items-center">
                   {stat.typeImage && (
                     <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
-                      <img src={`/${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                      <img src={`${import.meta.env.BASE_URL}${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
                     </div>
                   )}
                   <input
