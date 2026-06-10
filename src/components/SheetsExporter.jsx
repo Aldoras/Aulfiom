@@ -5,7 +5,7 @@ import { writeStatsToSheet } from "../google/sheets.js";
 import { openSpreadsheetPicker } from "../google/picker.js";
 import { Link, Unlink, ArrowUpRight, Check, Loader2, AlertCircle, RefreshCw, FileSpreadsheet } from "lucide-react";
 
-const API_KEY = "AIzaSyC9vXCMmReUNnUFKlue80t1b4JOI_mI5rw";
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
 export default function SheetsExporter({
   googleToken,
