@@ -121,3 +121,32 @@ export async function updateSaveFile(accessToken, fileId, stats) {
     throw new Error(`Failed to update save file: ${response.statusText} - ${errorText}`);
   }
 }
+
+/**
+ * Copy a file on Google Drive by its file ID.
+ * @param {string} accessToken
+ * @param {string} fileId
+ * @param {string} newName
+ * @returns {Promise<{id: string, name: string}>} Copied file info
+ */
+export async function copyDriveFile(accessToken, fileId, newName) {
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}/copy`;
+  
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: newName,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to copy spreadsheet: ${response.statusText} - ${errorText}`);
+  }
+
+  return await response.json();
+}

@@ -1,11 +1,69 @@
 import React, { useState } from "react";
-import { templates } from "../templates/templates.js";
+import { loadTemplates } from "../templates/storage.js";
 import { getLinkedSheetId, setLinkedSheetId, clearLinkedSheetId } from "../templates/links.js";
 import { writeStatsToSheet } from "../google/sheets.js";
 import { openSpreadsheetPicker } from "../google/picker.js";
+import { copyDriveFile } from "../google/drive.js";
 import { Link, Unlink, ArrowUpRight, Check, Loader2, AlertCircle, RefreshCw, FileSpreadsheet } from "lucide-react";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
+
+const openLoadingTab = (title, message) => {
+  const newTab = window.open("", "_blank");
+  if (newTab) {
+    newTab.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body {
+              background-color: #0b0f19;
+              color: #f3f4f6;
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .spinner {
+              border: 4px solid rgba(255, 255, 255, 0.08);
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              border-left-color: #6366f1;
+              animation: spin 1s linear infinite;
+              margin-bottom: 24px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .title {
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 8px;
+            }
+            .message {
+              font-size: 13px;
+              color: #9ca3af;
+              font-weight: 500;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="spinner"></div>
+          <div class="title">${title}</div>
+          <div class="message">${message}</div>
+        </body>
+      </html>
+    `);
+    newTab.document.close();
+  }
+  return newTab;
+};
 
 export default function SheetsExporter({
   googleToken,
@@ -13,9 +71,11 @@ export default function SheetsExporter({
   schema,
   onGoogleSignIn
 }) {
+  const templatesList = loadTemplates();
+
   const [links, setLinks] = useState(() => {
     const initial = {};
-    templates.forEach((t) => {
+    templatesList.forEach((t) => {
       initial[t.id] = getLinkedSheetId(t.id) || "";
     });
     return initial;
@@ -23,6 +83,9 @@ export default function SheetsExporter({
 
   const [pushing, setPushing] = useState({});
   const [reloading, setReloading] = useState({});
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copyTemplate, setCopyTemplate] = useState(null);
+  const [copySpreadsheetName, setCopySpreadsheetName] = useState("");
 
   const handleLink = (templateId) => {
     if (!googleToken) {
@@ -53,7 +116,7 @@ export default function SheetsExporter({
       return;
     }
 
-    const t = templates.find((x) => x.id === templateId);
+    const t = templatesList.find((x) => x.id === templateId);
     if (!t) return;
 
     const spreadsheetId = isTest ? t.spreadsheetId : links[templateId];
@@ -62,17 +125,137 @@ export default function SheetsExporter({
       return;
     }
 
+    // Open a blank tab synchronously with a loader page to bypass browser popup blockers
+    const newTab = openLoadingTab("Exporting Stats", "Writing live stats to your Google Sheet...");
+
     try {
       setPushing((prev) => ({ ...prev, [templateId]: true }));
-      await writeStatsToSheet(spreadsheetId, t.mappings, stats, googleToken, schema);
+
+      // Load game stats from pasted JSON
+      const pastedRaw = localStorage.getItem("gameStats_pastedJson");
+      let gameStats = {};
+      if (pastedRaw) {
+        try {
+          gameStats = JSON.parse(pastedRaw)?.stats || {};
+        } catch (e) {
+          console.error("Failed to parse gameStats_pastedJson", e);
+        }
+      }
+
+      // Combine tracking stats and game stats
+      const combinedStats = { ...stats, ...gameStats };
+
+      // Load game stats schema
+      const { gameStatsCategory } = await import("../stats/schema/gameStats.js");
+      let resolvedGameStatsCategory = gameStatsCategory;
+      const savedGameStatsSchema = localStorage.getItem("gameStatsSchemaConfig");
+      if (savedGameStatsSchema) {
+        try {
+          resolvedGameStatsCategory = JSON.parse(savedGameStatsSchema);
+        } catch (e) {
+          console.error("Failed to parse custom gameStats schema config", e);
+        }
+      }
+
+      const combinedSchema = [...schema, resolvedGameStatsCategory];
+
+      await writeStatsToSheet(spreadsheetId, t.mappings, combinedStats, googleToken, combinedSchema);
       
-      // Open sheet in a new tab
-      window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`, "_blank");
+      // Redirect the blank tab
+      if (newTab) {
+        newTab.location.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+      }
     } catch (err) {
       console.error("Push failed:", err);
+      if (newTab) {
+        newTab.close();
+      }
       alert(`Export failed: ${err.message || err}`);
     } finally {
       setPushing((prev) => ({ ...prev, [templateId]: false }));
+    }
+  };
+
+  const handleAutoCopyAndPush = (t) => {
+    if (!googleToken) {
+      alert("Please sign in with Google first.");
+      onGoogleSignIn();
+      return;
+    }
+
+    if (!t.spreadsheetId || t.spreadsheetId === "PUT_YOUR_TEMPLATE_ID_HERE") {
+      alert("This template does not specify a valid source spreadsheet ID to copy.");
+      return;
+    }
+
+    setCopyTemplate(t);
+    setCopySpreadsheetName(`My Copy of ${t.name}`);
+    setShowCopyModal(true);
+  };
+
+  const handleStartCopyAndPush = async () => {
+    if (!copyTemplate) return;
+    const t = copyTemplate;
+    const finalName = copySpreadsheetName.trim() || `My Copy of ${t.name}`;
+
+    // Close the modal
+    setShowCopyModal(false);
+
+    // Open a blank tab synchronously with a loader page to bypass browser popup blockers
+    const newTab = openLoadingTab("Creating Spreadsheet Copy", "Cloning template and writing live stats...");
+
+    try {
+      setPushing((prev) => ({ ...prev, [t.id]: true }));
+
+      // 1. Copy the file on Google Drive
+      const copiedFile = await copyDriveFile(googleToken, t.spreadsheetId, finalName);
+      const newFileId = copiedFile.id;
+
+      // 2. Link it to the template
+      setLinkedSheetId(t.id, newFileId);
+      setLinks((prev) => ({ ...prev, [t.id]: newFileId }));
+
+      // 3. Push stats to it
+      const pastedRaw = localStorage.getItem("gameStats_pastedJson");
+      let gameStats = {};
+      if (pastedRaw) {
+        try {
+          gameStats = JSON.parse(pastedRaw)?.stats || {};
+        } catch (e) {
+          console.error("Failed to parse gameStats_pastedJson", e);
+        }
+      }
+
+      const combinedStats = { ...stats, ...gameStats };
+
+      const { gameStatsCategory } = await import("../stats/schema/gameStats.js");
+      let resolvedGameStatsCategory = gameStatsCategory;
+      const savedGameStatsSchema = localStorage.getItem("gameStatsSchemaConfig");
+      if (savedGameStatsSchema) {
+        try {
+          resolvedGameStatsCategory = JSON.parse(savedGameStatsSchema);
+        } catch (e) {
+          console.error("Failed to parse custom gameStats schema config", e);
+        }
+      }
+
+      const combinedSchema = [...schema, resolvedGameStatsCategory];
+
+      await writeStatsToSheet(newFileId, t.mappings, combinedStats, googleToken, combinedSchema);
+      
+      // 4. Redirect the blank tab
+      if (newTab) {
+        newTab.location.href = `https://docs.google.com/spreadsheets/d/${newFileId}/edit`;
+      }
+    } catch (err) {
+      console.error("Auto-copy & push failed:", err);
+      if (newTab) {
+        newTab.close();
+      }
+      alert(`Auto-copy & push failed: ${err.message || err}`);
+    } finally {
+      setPushing((prev) => ({ ...prev, [t.id]: false }));
+      setCopyTemplate(null);
     }
   };
 
@@ -109,7 +292,7 @@ export default function SheetsExporter({
 
       {/* Templates List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {templates.map((t) => {
+        {templatesList.map((t) => {
           const linkedId = links[t.id];
           const isPushing = pushing[t.id];
 
@@ -194,19 +377,71 @@ export default function SheetsExporter({
                   </button>
                 )}
 
-                {/* Optional Template Push (Test) */}
+                {/* Auto Copy Template & Push Option */}
                 <button
-                  disabled={isPushing}
-                  onClick={() => handlePush(t.id, true)}
-                  className="w-full text-center py-2 text-[10px] text-gray-500 hover:text-gray-400 transition-colors uppercase tracking-wider font-semibold"
+                  disabled={isPushing || !googleToken}
+                  onClick={() => handleAutoCopyAndPush(t)}
+                  className="w-full text-center py-2 text-[10px] text-indigo-400 hover:text-indigo-300 disabled:text-gray-600 transition-colors uppercase tracking-wider font-semibold cursor-pointer disabled:cursor-not-allowed"
                 >
-                  Push to template directly (Requires edit access)
+                  No copy yet? Create one in your Drive & Push data
                 </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Copy Template Modal Overlay */}
+      {showCopyModal && copyTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl glass-panel border border-indigo-500/20 flex flex-col animate-slide-up shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-white/10 bg-indigo-950/20 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-white leading-tight">Create Spreadsheet Copy</h3>
+                <p className="text-xs text-gray-400 mt-1">Cloning public community template to your Drive</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-300">Spreadsheet File Name</label>
+                <input
+                  type="text"
+                  value={copySpreadsheetName}
+                  onChange={(e) => setCopySpreadsheetName(e.target.value)}
+                  placeholder="Enter file name"
+                  className="w-full px-3 py-2 bg-gray-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 leading-normal">
+                This will create a new, private copy of the spreadsheet in your Google Drive and link it to your tracked parameters.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-white/10 bg-gray-900/30 flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowCopyModal(false);
+                  setCopyTemplate(null);
+                }}
+                className="px-4 py-2 border border-white/10 hover:bg-white/5 text-xs font-bold rounded-xl text-gray-300 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartCopyAndPush}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl text-white transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+              >
+                Create & Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
