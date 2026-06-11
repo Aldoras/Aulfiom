@@ -23,7 +23,7 @@ import { ensurePickerLoaded } from "./google/picker.js";
 import { searchSaveFile, downloadSaveFile, createSaveFile, updateSaveFile } from "./google/drive.js";
 
 const CLIENT_ID = "327402550159-ij11pkr61ukgirnm8eomvcgt5vobveb4.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
+const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly";
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState("drones");

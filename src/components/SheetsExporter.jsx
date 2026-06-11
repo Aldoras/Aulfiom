@@ -65,6 +65,9 @@ export default function SheetsExporter({
       return;
     }
 
+    // Open a blank tab synchronously to bypass browser popup blockers
+    const newTab = window.open("about:blank", "_blank");
+
     try {
       setPushing((prev) => ({ ...prev, [templateId]: true }));
 
@@ -98,10 +101,15 @@ export default function SheetsExporter({
 
       await writeStatsToSheet(spreadsheetId, t.mappings, combinedStats, googleToken, combinedSchema);
       
-      // Open sheet in a new tab
-      window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`, "_blank");
+      // Redirect the blank tab
+      if (newTab) {
+        newTab.location.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+      }
     } catch (err) {
       console.error("Push failed:", err);
+      if (newTab) {
+        newTab.close();
+      }
       alert(`Export failed: ${err.message || err}`);
     } finally {
       setPushing((prev) => ({ ...prev, [templateId]: false }));
@@ -129,6 +137,9 @@ export default function SheetsExporter({
     }
 
     const finalName = newName.trim() || defaultName;
+
+    // Open a blank tab synchronously to bypass browser popup blockers
+    const newTab = window.open("about:blank", "_blank");
 
     try {
       setPushing((prev) => ({ ...prev, [t.id]: true }));
@@ -169,10 +180,15 @@ export default function SheetsExporter({
 
       await writeStatsToSheet(newFileId, t.mappings, combinedStats, googleToken, combinedSchema);
       
-      // 4. Open sheet in a new tab
-      window.open(`https://docs.google.com/spreadsheets/d/${newFileId}/edit`, "_blank");
+      // 4. Redirect the blank tab
+      if (newTab) {
+        newTab.location.href = `https://docs.google.com/spreadsheets/d/${newFileId}/edit`;
+      }
     } catch (err) {
       console.error("Auto-copy & push failed:", err);
+      if (newTab) {
+        newTab.close();
+      }
       alert(`Auto-copy & push failed: ${err.message || err}`);
     } finally {
       setPushing((prev) => ({ ...prev, [t.id]: false }));
