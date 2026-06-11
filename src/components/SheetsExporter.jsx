@@ -15,7 +15,7 @@ const openLoadingTab = (title, message) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>\${title}</title>
+          <title>${title}</title>
           <style>
             body {
               background-color: #0b0f19;
@@ -55,8 +55,8 @@ const openLoadingTab = (title, message) => {
         </head>
         <body>
           <div class="spinner"></div>
-          <div class="title">\${title}</div>
-          <div class="message">\${message}</div>
+          <div class="title">${title}</div>
+          <div class="message">${message}</div>
         </body>
       </html>
     `);
