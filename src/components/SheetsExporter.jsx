@@ -3,6 +3,7 @@ import { loadTemplates } from "../templates/storage.js";
 import { getLinkedSheetId, setLinkedSheetId, clearLinkedSheetId } from "../templates/links.js";
 import { writeStatsToSheet } from "../google/sheets.js";
 import { openSpreadsheetPicker } from "../google/picker.js";
+import { copyDriveFile } from "../google/drive.js";
 import { Link, Unlink, ArrowUpRight, Check, Loader2, AlertCircle, RefreshCw, FileSpreadsheet } from "lucide-react";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
@@ -104,6 +105,77 @@ export default function SheetsExporter({
       alert(`Export failed: ${err.message || err}`);
     } finally {
       setPushing((prev) => ({ ...prev, [templateId]: false }));
+    }
+  };
+
+  const handleAutoCopyAndPush = async (t) => {
+    if (!googleToken) {
+      alert("Please sign in with Google first.");
+      onGoogleSignIn();
+      return;
+    }
+
+    if (!t.spreadsheetId || t.spreadsheetId === "PUT_YOUR_TEMPLATE_ID_HERE") {
+      alert("This template does not specify a valid source spreadsheet ID to copy.");
+      return;
+    }
+
+    const defaultName = `My Copy of ${t.name}`;
+    const newName = window.prompt("Enter a name for your spreadsheet copy in Google Drive:", defaultName);
+    
+    if (newName === null) {
+      // User cancelled
+      return;
+    }
+
+    const finalName = newName.trim() || defaultName;
+
+    try {
+      setPushing((prev) => ({ ...prev, [t.id]: true }));
+
+      // 1. Copy the file on Google Drive
+      const copiedFile = await copyDriveFile(googleToken, t.spreadsheetId, finalName);
+      const newFileId = copiedFile.id;
+
+      // 2. Link it to the template
+      setLinkedSheetId(t.id, newFileId);
+      setLinks((prev) => ({ ...prev, [t.id]: newFileId }));
+
+      // 3. Push stats to it
+      const pastedRaw = localStorage.getItem("gameStats_pastedJson");
+      let gameStats = {};
+      if (pastedRaw) {
+        try {
+          gameStats = JSON.parse(pastedRaw)?.stats || {};
+        } catch (e) {
+          console.error("Failed to parse gameStats_pastedJson", e);
+        }
+      }
+
+      const combinedStats = { ...stats, ...gameStats };
+
+      const { gameStatsCategory } = await import("../stats/schema/gameStats.js");
+      let resolvedGameStatsCategory = gameStatsCategory;
+      const savedGameStatsSchema = localStorage.getItem("gameStatsSchemaConfig");
+      if (savedGameStatsSchema) {
+        try {
+          resolvedGameStatsCategory = JSON.parse(savedGameStatsSchema);
+        } catch (e) {
+          console.error("Failed to parse custom gameStats schema config", e);
+        }
+      }
+
+      const combinedSchema = [...schema, resolvedGameStatsCategory];
+
+      await writeStatsToSheet(newFileId, t.mappings, combinedStats, googleToken, combinedSchema);
+      
+      // 4. Open sheet in a new tab
+      window.open(`https://docs.google.com/spreadsheets/d/${newFileId}/edit`, "_blank");
+    } catch (err) {
+      console.error("Auto-copy & push failed:", err);
+      alert(`Auto-copy & push failed: ${err.message || err}`);
+    } finally {
+      setPushing((prev) => ({ ...prev, [t.id]: false }));
     }
   };
 
@@ -225,13 +297,13 @@ export default function SheetsExporter({
                   </button>
                 )}
 
-                {/* Optional Template Push (Test) */}
+                {/* Auto Copy Template & Push Option */}
                 <button
-                  disabled={isPushing}
-                  onClick={() => handlePush(t.id, true)}
-                  className="w-full text-center py-2 text-[10px] text-gray-500 hover:text-gray-400 transition-colors uppercase tracking-wider font-semibold"
+                  disabled={isPushing || !googleToken}
+                  onClick={() => handleAutoCopyAndPush(t)}
+                  className="w-full text-center py-2 text-[10px] text-indigo-400 hover:text-indigo-300 disabled:text-gray-600 transition-colors uppercase tracking-wider font-semibold cursor-pointer disabled:cursor-not-allowed"
                 >
-                  Push to template directly (Requires edit access)
+                  No copy yet? Create one in your Drive & Push data
                 </button>
               </div>
             </div>
