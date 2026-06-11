@@ -8,6 +8,63 @@ import { Link, Unlink, ArrowUpRight, Check, Loader2, AlertCircle, RefreshCw, Fil
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 
+const openLoadingTab = (title, message) => {
+  const newTab = window.open("", "_blank");
+  if (newTab) {
+    newTab.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>\${title}</title>
+          <style>
+            body {
+              background-color: #0b0f19;
+              color: #f3f4f6;
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .spinner {
+              border: 4px solid rgba(255, 255, 255, 0.08);
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              border-left-color: #6366f1;
+              animation: spin 1s linear infinite;
+              margin-bottom: 24px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .title {
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 8px;
+            }
+            .message {
+              font-size: 13px;
+              color: #9ca3af;
+              font-weight: 500;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="spinner"></div>
+          <div class="title">\${title}</div>
+          <div class="message">\${message}</div>
+        </body>
+      </html>
+    `);
+    newTab.document.close();
+  }
+  return newTab;
+};
+
 export default function SheetsExporter({
   googleToken,
   stats,
@@ -65,8 +122,8 @@ export default function SheetsExporter({
       return;
     }
 
-    // Open a blank tab synchronously to bypass browser popup blockers
-    const newTab = window.open("about:blank", "_blank");
+    // Open a blank tab synchronously with a loader page to bypass browser popup blockers
+    const newTab = openLoadingTab("Exporting Stats", "Writing live stats to your Google Sheet...");
 
     try {
       setPushing((prev) => ({ ...prev, [templateId]: true }));
@@ -138,8 +195,8 @@ export default function SheetsExporter({
 
     const finalName = newName.trim() || defaultName;
 
-    // Open a blank tab synchronously to bypass browser popup blockers
-    const newTab = window.open("about:blank", "_blank");
+    // Open a blank tab synchronously with a loader page to bypass browser popup blockers
+    const newTab = openLoadingTab("Creating Spreadsheet Copy", "Cloning template and writing live stats...");
 
     try {
       setPushing((prev) => ({ ...prev, [t.id]: true }));
