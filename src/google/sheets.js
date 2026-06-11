@@ -40,12 +40,36 @@ export async function writeStatsToSheet(
   schema
 ) {
   const metaMap = schema ? buildStatMetaMap(schema) : null;
-  const data = Object.entries(mappings).map(([key, range]) => {
+  const data = Object.entries(mappings).map(([key, mappingVal]) => {
+    let range = "";
+    let formatOverride = null;
+    if (mappingVal && typeof mappingVal === "object") {
+      range = mappingVal.range || "";
+      formatOverride = mappingVal.format;
+    } else {
+      range = String(mappingVal);
+    }
+
     const meta = metaMap?.get(key);
     let value = stats[key] ?? 0;
-    if (isPercentMeta(meta)) {
+
+    const isPercent = formatOverride === "percent" || (!formatOverride && isPercentMeta(meta));
+
+    if (isPercent) {
       value = Number(value) / 100;
+    } else if (formatOverride === "number" || formatOverride === "double") {
+      value = Number(value);
+    } else if (formatOverride === "raw") {
+      if (value === undefined || value === null) value = 0;
+    } else {
+      // Default auto format
+      if (typeof value === "number") {
+        // Keep as number
+      } else if (!isNaN(Number(value))) {
+        value = Number(value);
+      }
     }
+
     return {
       range,
       values: [[value]]

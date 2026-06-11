@@ -76,12 +76,12 @@ function StatList({ list, stats, onUpdate, catId }) {
     if (cardAccumulator.length > 0) {
       const cards = [...cardAccumulator];
       
-      // Determine grid size based on category type (exactly 3 columns for construct statues)
+      // Determine grid size based on category type (exactly 3 columns for construct statues, centered)
       const gridClass =
         catId === "skillTree"
           ? "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2" // very compact for skills
           : catId === "construct"
-          ? "grid grid-cols-3 gap-3 w-fit" // exactly 3 columns for statues!
+          ? "grid grid-cols-3 gap-3 w-fit mx-auto" // exactly 3 columns for statues, centered!
           : "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2";  // compact default
 
       renderedItems.push(
@@ -262,12 +262,28 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
   // - construct statues: w-7 h-7
   // - skillTree skills: w-5.5 h-5.5 (extremely small)
   const imageSizeClass = catId === "skillTree" ? "w-5.5 h-5.5" : "w-7 h-7";
-  const innerMinHeightClass = catId === "skillTree" ? "min-h-[2.5rem]" : "min-h-[2.8rem]";
+  const innerMinHeightClass = catId === "construct"
+    ? ""
+    : catId === "skillTree"
+    ? "min-h-[2.5rem]"
+    : "min-h-[2.8rem]";
+
+  const cardWidthClass = catId === "construct"
+    ? "w-16 h-24"
+    : "";
+
+  const nameTextSize = catId === "construct" ? "text-[8px] leading-tight px-0.5" : "text-[9px]";
+  const labelTextSize = catId === "construct" ? "text-[7px]" : "text-[7px]";
+  const badgeTextSize = catId === "construct" ? "text-[7px]" : "text-[7px]";
+  const imageContainerClass = catId === "construct" ? "w-full h-16" : "w-full aspect-[1/1]";
+  const imageFitClass = catId === "construct" ? "object-contain" : "object-cover";
+  const hoverScaleClass = catId === "construct" ? "" : "group-hover:scale-105";
+  const hoverTypeScaleClass = catId === "construct" ? "" : "group-hover:scale-110";
 
   return (
     <button
       onClick={handleCardClick}
-      className={`group flex flex-col rounded-xl border overflow-hidden text-center transition-all duration-300 transform active:scale-95 glass-panel select-none relative ${
+      className={`group flex flex-col rounded-xl border overflow-hidden text-center transition-all duration-300 transform active:scale-95 glass-panel select-none relative ${cardWidthClass} ${
         isLocked
           ? "border-white/5 opacity-55 hover:opacity-85 grayscale"
           : states === 4
@@ -280,12 +296,12 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
           : "border-indigo-500/30 bg-indigo-950/5 shadow-[0_0_8px_rgba(99,102,241,0.15)] hover:border-indigo-400/50"
       }`}
     >
-      <div className="w-full aspect-[1/1] bg-gray-950 relative flex items-center justify-center overflow-hidden">
+      <div className={`${imageContainerClass} bg-gray-950 relative flex items-center justify-center overflow-hidden`}>
         {backingSrc ? (
           <img
             src={`${import.meta.env.BASE_URL}${backingSrc}`}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            className={`absolute inset-0 w-full h-full ${imageFitClass} transition-transform ${hoverScaleClass}`}
             onError={(e) => (e.target.style.display = "none")}
           />
         ) : (
@@ -296,7 +312,7 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
           <img
             src={`${import.meta.env.BASE_URL}${typeSrc}`}
             alt={stat.name}
-            className={`${imageSizeClass} object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] ${
+            className={`${imageSizeClass} object-contain z-10 transition-transform ${hoverTypeScaleClass} drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] ${
               isLocked ? "opacity-35" : ""
             }`}
             onError={(e) => (e.target.style.display = "none")}
@@ -312,16 +328,16 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
         )}
 
         {!isLocked && states > 2 && (
-          <div className="absolute top-1 right-1 px-1 py-0.5 rounded bg-black/75 border border-white/15 text-[7px] font-bold text-white z-20">
+          <div className={`absolute top-1 right-1 px-1 py-0.5 rounded bg-black/75 border border-white/15 ${badgeTextSize} font-bold text-white z-20`}>
             {val}
           </div>
         )}
       </div>
 
       <div className={`p-1 border-t border-white/5 bg-gray-900/60 flex-1 flex flex-col justify-between ${innerMinHeightClass}`}>
-        <div className="text-[9px] font-bold text-white line-clamp-2 leading-tight flex-1 flex items-center justify-center">{stat.name}</div>
+        <div className={`${nameTextSize} font-bold text-white line-clamp-2 leading-tight flex-1 flex items-center justify-center`}>{stat.name}</div>
         <div
-          className={`text-[7px] mt-0.5 uppercase tracking-wider font-semibold ${
+          className={`${labelTextSize} mt-0.5 uppercase tracking-wider font-semibold ${
             isLocked
               ? "text-gray-500"
               : states === 4

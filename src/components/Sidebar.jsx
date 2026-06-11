@@ -1,5 +1,5 @@
 import React from "react";
-import { Cpu, Award, Star, Settings, FileSpreadsheet, ExternalLink, HelpCircle, BarChart3 } from "lucide-react";
+import { Cpu, Award, Star, Settings, FileSpreadsheet, ExternalLink, HelpCircle, BarChart3, Link } from "lucide-react";
 
 export default function Sidebar({
   schema,
@@ -21,6 +21,11 @@ export default function Sidebar({
       id: "exporter",
       name: "Sheets Exporter",
       isSpreadsheet: true
+    },
+    {
+      id: "linkerAdmin",
+      name: "Linker Admin",
+      isLinkerAdmin: true
     },
     {
       id: "admin",
@@ -118,6 +123,8 @@ export default function Sidebar({
                 >
                   {item.isSpreadsheet ? (
                     <FileSpreadsheet className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  ) : item.isLinkerAdmin ? (
+                    <Link className="w-5 h-5 text-indigo-400 flex-shrink-0" />
                   ) : item.isAdmin ? (
                     <Settings className="w-5 h-5 text-indigo-400 flex-shrink-0" />
                   ) : (

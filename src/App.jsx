@@ -11,6 +11,7 @@ import HelpSection from "./components/HelpSection.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
 import GameStatsViewer from "./components/GameStatsViewer.jsx";
 import SkillTreePanel from "./components/SkillTreePanel.jsx";
+import LinkerAdmin from "./components/LinkerAdmin.jsx";
 
 import { statSchema } from "./stats/schema.js";
 import { gameStatsCategory } from "./stats/schema/gameStats.js";
@@ -238,18 +239,31 @@ export default function App() {
   };
 
   // Stat modifications
-  const handleUpdateField = (key, value) => {
-    if (previewStats) {
-      // In preview mode, allow edits but only to preview state, don't save to storage
-      setPreviewStats((prev) => ({ ...prev, [key]: value }));
-      return;
+  const handleUpdateField = (keyOrUpdates, value) => {
+    if (typeof keyOrUpdates === "object" && keyOrUpdates !== null) {
+      const updates = keyOrUpdates;
+      if (previewStats) {
+        setPreviewStats((prev) => ({ ...prev, ...updates }));
+        return;
+      }
+      setStats((prev) => {
+        const next = { ...prev, ...updates };
+        saveStats(next);
+        return next;
+      });
+    } else {
+      const key = keyOrUpdates;
+      if (previewStats) {
+        // In preview mode, allow edits but only to preview state, don't save to storage
+        setPreviewStats((prev) => ({ ...prev, [key]: value }));
+        return;
+      }
+      setStats((prev) => {
+        const next = { ...prev, [key]: value };
+        saveStats(next);
+        return next;
+      });
     }
-
-    setStats((prev) => {
-      const next = { ...prev, [key]: value };
-      saveStats(next);
-      return next;
-    });
   };
 
   // Auth triggers
@@ -309,7 +323,7 @@ export default function App() {
     const activeStats = previewStats || stats;
 
     if (activeCategory === "stats") {
-      return <GameStatsViewer catData={gameStatsCategory} />;
+      return <GameStatsViewer catData={gameStatsCategory} onUpdateField={handleUpdateField} />;
     }
 
     if (activeCategory === "exporter") {
@@ -327,6 +341,10 @@ export default function App() {
       return <HelpSection />;
     }
     
+    if (activeCategory === "linkerAdmin") {
+      return <LinkerAdmin />;
+    }
+
     if (activeCategory === "admin") {
       return <AdminPanel />;
     }

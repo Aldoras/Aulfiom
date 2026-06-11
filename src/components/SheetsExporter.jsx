@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { templates } from "../templates/templates.js";
+import { loadTemplates } from "../templates/storage.js";
 import { getLinkedSheetId, setLinkedSheetId, clearLinkedSheetId } from "../templates/links.js";
 import { writeStatsToSheet } from "../google/sheets.js";
 import { openSpreadsheetPicker } from "../google/picker.js";
@@ -13,9 +13,11 @@ export default function SheetsExporter({
   schema,
   onGoogleSignIn
 }) {
+  const templatesList = loadTemplates();
+
   const [links, setLinks] = useState(() => {
     const initial = {};
-    templates.forEach((t) => {
+    templatesList.forEach((t) => {
       initial[t.id] = getLinkedSheetId(t.id) || "";
     });
     return initial;
@@ -53,7 +55,7 @@ export default function SheetsExporter({
       return;
     }
 
-    const t = templates.find((x) => x.id === templateId);
+    const t = templatesList.find((x) => x.id === templateId);
     if (!t) return;
 
     const spreadsheetId = isTest ? t.spreadsheetId : links[templateId];
@@ -64,7 +66,36 @@ export default function SheetsExporter({
 
     try {
       setPushing((prev) => ({ ...prev, [templateId]: true }));
-      await writeStatsToSheet(spreadsheetId, t.mappings, stats, googleToken, schema);
+
+      // Load game stats from pasted JSON
+      const pastedRaw = localStorage.getItem("gameStats_pastedJson");
+      let gameStats = {};
+      if (pastedRaw) {
+        try {
+          gameStats = JSON.parse(pastedRaw)?.stats || {};
+        } catch (e) {
+          console.error("Failed to parse gameStats_pastedJson", e);
+        }
+      }
+
+      // Combine tracking stats and game stats
+      const combinedStats = { ...stats, ...gameStats };
+
+      // Load game stats schema
+      const { gameStatsCategory } = await import("../stats/schema/gameStats.js");
+      let resolvedGameStatsCategory = gameStatsCategory;
+      const savedGameStatsSchema = localStorage.getItem("gameStatsSchemaConfig");
+      if (savedGameStatsSchema) {
+        try {
+          resolvedGameStatsCategory = JSON.parse(savedGameStatsSchema);
+        } catch (e) {
+          console.error("Failed to parse custom gameStats schema config", e);
+        }
+      }
+
+      const combinedSchema = [...schema, resolvedGameStatsCategory];
+
+      await writeStatsToSheet(spreadsheetId, t.mappings, combinedStats, googleToken, combinedSchema);
       
       // Open sheet in a new tab
       window.open(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`, "_blank");
@@ -109,7 +140,7 @@ export default function SheetsExporter({
 
       {/* Templates List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {templates.map((t) => {
+        {templatesList.map((t) => {
           const linkedId = links[t.id];
           const isPushing = pushing[t.id];
 

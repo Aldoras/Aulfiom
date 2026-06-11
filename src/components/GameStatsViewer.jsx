@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { Search, Trash2, Clipboard, Check, X, PenLine, AlertCircle, Layers, FileJson, AlertTriangle } from "lucide-react";
 import { formatStatValue, formatBigNumber } from "../stats/format.js";
 
-export default function GameStatsViewer({ catData }) {
+const isConstructStatueKey = (key) => /^statue_([0-8])_set([1-3])$/.test(key);
+
+export default function GameStatsViewer({ catData, onUpdateField }) {
   // Load initial pasted JSON state
   const [pastedData, setPastedData] = useState(() => {
     const raw = localStorage.getItem("gameStats_pastedJson");
@@ -69,7 +71,7 @@ export default function GameStatsViewer({ catData }) {
       const unsupportedKeys = [];
       
       statsKeys.forEach((key) => {
-        if (configuredStatsMap.has(key)) {
+        if (configuredStatsMap.has(key) || isConstructStatueKey(key)) {
           supportedCount++;
         } else {
           unsupportedCount++;
@@ -145,7 +147,7 @@ export default function GameStatsViewer({ catData }) {
       let unsupportedCount = 0;
       
       Object.entries(parsed.stats).forEach(([key, val]) => {
-        if (configuredStatsMap.has(key)) {
+        if (configuredStatsMap.has(key) || isConstructStatueKey(key)) {
           filteredStats[key] = val;
           supportedCount++;
         } else {
@@ -158,6 +160,67 @@ export default function GameStatsViewer({ catData }) {
         stats: filteredStats
       };
 
+      // Process construct statues
+      let importedStatuesCount = 0;
+      if (onUpdateField) {
+        const statueKeysBySet = {
+          set1: [
+            "statueOfRhythm",
+            "statueOfAwareness",
+            "statueOfSlaying",
+            "statueOfAppetite",
+            "statueOfFriendship",
+            "statueOfHygiene",
+            "statueOfArtistry",
+            "statueOfRandomness",
+            "statueOfChildhood"
+          ],
+          set2: [
+            "statueOfCraftmanship",
+            "statueOfPropulsion",
+            "statueOfSafety",
+            "statueOfIgnition",
+            "statueOfWarmth",
+            "statueOfFeline",
+            "statueOfAffluence",
+            "statueOfEastwood",
+            "statueOfSoprano"
+          ],
+          set3: [
+            "statueOfComfort",
+            "statueOfTimekeeping",
+            "statueOfCombat",
+            "statueOfNature",
+            "statueOfSemblance",
+            "statueOfCrochet",
+            "statueOfAntagonism",
+            "statueOfFallacy",
+            "statueOfRodentia"
+          ]
+        };
+        
+        const updates = {};
+        
+        ["set1", "set2", "set3"].forEach((setId) => {
+          const keys = statueKeysBySet[setId];
+          for (let i = 0; i < keys.length; i++) {
+            const jsonKey = `statue_${i}_${setId}`;
+            if (jsonKey in parsed.stats) {
+              const val = parsed.stats[jsonKey];
+              // Clamp to 0-3 range, round down
+              const state = Math.max(0, Math.min(3, Math.floor(Number(val))));
+              const schemaKey = keys[i];
+              updates[schemaKey] = state;
+              importedStatuesCount++;
+            }
+          }
+        });
+        
+        if (importedStatuesCount > 0) {
+          onUpdateField(updates);
+        }
+      }
+
       localStorage.setItem("gameStats_pastedJson", JSON.stringify(updated));
       setPastedData(updated);
       setInputJson("");
@@ -166,7 +229,8 @@ export default function GameStatsViewer({ catData }) {
       setShowUnsupportedPreview(false);
       setImportFeedback({
         supportedCount,
-        unsupportedCount
+        unsupportedCount,
+        importedStatuesCount
       });
     } catch (e) {
       console.error(e);
@@ -194,14 +258,14 @@ export default function GameStatsViewer({ catData }) {
   const uncategorizedStats = useMemo(() => {
     const list = [];
     Object.entries(statsSource).forEach(([key, val]) => {
-      if (!configuredStatsMap.has(key)) {
+      if (!configuredStatsMap.has(key) && !isConstructStatueKey(key)) {
         list.push({
           key,
           value: val,
           name: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
           desc: "Unconfigured raw game statistic",
           type: key.includes("chance") ? "chance" : key.includes("multi") ? "multi" : key.includes("reduction") ? "reduction" : "number",
-          icon: "icons/menus/Construct.webp"
+          icon: "icons/menus/Prestige.webp"
         });
       }
     });
@@ -321,6 +385,12 @@ export default function GameStatsViewer({ catData }) {
                 <>
                   {" "}
                   <strong className="text-amber-300">{importFeedback.unsupportedCount}</strong> unsupported stats were skipped.
+                </>
+              )}
+              {importFeedback.importedStatuesCount > 0 && (
+                <>
+                  {" "}
+                  Imported <strong className="text-white">{importFeedback.importedStatuesCount}</strong> construct statues.
                 </>
               )}
             </span>

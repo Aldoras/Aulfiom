@@ -193,7 +193,7 @@ export const prestigeCategory = {
         min: 0,
         max: 52,
         step: 1,
-        icon: "icons/prestige/_Per_Statue_Owned.webp"
+        icon: "icons/prestige/Bomb_Damage_Per_Statue_Owned.webp"
         },
            {
         key: "pickaxeOmegaCritChance",
