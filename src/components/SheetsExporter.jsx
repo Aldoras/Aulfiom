@@ -83,6 +83,9 @@ export default function SheetsExporter({
 
   const [pushing, setPushing] = useState({});
   const [reloading, setReloading] = useState({});
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copyTemplate, setCopyTemplate] = useState(null);
+  const [copySpreadsheetName, setCopySpreadsheetName] = useState("");
 
   const handleLink = (templateId) => {
     if (!googleToken) {
@@ -173,7 +176,7 @@ export default function SheetsExporter({
     }
   };
 
-  const handleAutoCopyAndPush = async (t) => {
+  const handleAutoCopyAndPush = (t) => {
     if (!googleToken) {
       alert("Please sign in with Google first.");
       onGoogleSignIn();
@@ -185,15 +188,18 @@ export default function SheetsExporter({
       return;
     }
 
-    const defaultName = `My Copy of ${t.name}`;
-    const newName = window.prompt("Enter a name for your spreadsheet copy in Google Drive:", defaultName);
-    
-    if (newName === null) {
-      // User cancelled
-      return;
-    }
+    setCopyTemplate(t);
+    setCopySpreadsheetName(`My Copy of ${t.name}`);
+    setShowCopyModal(true);
+  };
 
-    const finalName = newName.trim() || defaultName;
+  const handleStartCopyAndPush = async () => {
+    if (!copyTemplate) return;
+    const t = copyTemplate;
+    const finalName = copySpreadsheetName.trim() || `My Copy of ${t.name}`;
+
+    // Close the modal
+    setShowCopyModal(false);
 
     // Open a blank tab synchronously with a loader page to bypass browser popup blockers
     const newTab = openLoadingTab("Creating Spreadsheet Copy", "Cloning template and writing live stats...");
@@ -249,6 +255,7 @@ export default function SheetsExporter({
       alert(`Auto-copy & push failed: ${err.message || err}`);
     } finally {
       setPushing((prev) => ({ ...prev, [t.id]: false }));
+      setCopyTemplate(null);
     }
   };
 
@@ -383,6 +390,58 @@ export default function SheetsExporter({
           );
         })}
       </div>
+
+      {/* Copy Template Modal Overlay */}
+      {showCopyModal && copyTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl glass-panel border border-indigo-500/20 flex flex-col animate-slide-up shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-white/10 bg-indigo-950/20 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-white leading-tight">Create Spreadsheet Copy</h3>
+                <p className="text-xs text-gray-400 mt-1">Cloning public community template to your Drive</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-300">Spreadsheet File Name</label>
+                <input
+                  type="text"
+                  value={copySpreadsheetName}
+                  onChange={(e) => setCopySpreadsheetName(e.target.value)}
+                  placeholder="Enter file name"
+                  className="w-full px-3 py-2 bg-gray-950 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 leading-normal">
+                This will create a new, private copy of the spreadsheet in your Google Drive and link it to your tracked parameters.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-white/10 bg-gray-900/30 flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowCopyModal(false);
+                  setCopyTemplate(null);
+                }}
+                className="px-4 py-2 border border-white/10 hover:bg-white/5 text-xs font-bold rounded-xl text-gray-300 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartCopyAndPush}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl text-white transition-all shadow-md shadow-indigo-600/10 cursor-pointer"
+              >
+                Create & Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
