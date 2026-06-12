@@ -1,15 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Lock, Search } from "lucide-react";
-
-export function formatCardName(key) {
-  if (!key) return "";
-  return key
-    .replace(/_card/g, "")
-    .replace(/_/g, " ")
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+import { CARD_BACKINGS, CARD_ORE_LABELS, formatCardName } from "../stats/schema/cardAssets.js";
 
 export default function CardsGrid({ catData, stats, onUpdateField }) {
   const [activeSection, setActiveSection] = useState("All");
@@ -57,7 +48,7 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
   };
 
   const handleCardClick = (card) => {
-    const states = Number(card.states ?? 2);
+    const states = Number(card.states ?? 5);
     const current = getCardVal(card.key, card.default ?? 0);
     const next = (current + 1) % states;
     onUpdateField(card.key, next);
@@ -150,13 +141,13 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
         <div className="grid grid-cols-9 gap-2 w-fit">
           {filteredCards.map((c) => {
             const state = getCardVal(c.key, c.default ?? 0);
-            const states = Number(c.states ?? 2);
-            const backingSrc = (Array.isArray(c.images) ? c.images[state] : null) ?? c.icon ?? "";
+            const states = Number(c.states ?? 5);
+            const backingSrc = (Array.isArray(c.images) ? c.images[state] : null) ?? CARD_BACKINGS[state] ?? c.icon ?? "";
             const typeSrc = c.typeImage ?? "";
 
             const { cardClass } = getRarityStyles(state, states);
-            const label = Array.isArray(c.labels) ? c.labels[state] : (state === 0 ? "Locked" : `Tier ${state}`);
-            const cardName = formatCardName(c.key);
+            const label = Array.isArray(c.labels) ? c.labels[state] : (CARD_ORE_LABELS[state] ?? (state === 0 ? "Locked" : `Tier ${state}`));
+            const cardName = formatCardName(c.key, c.typeImage);
 
             return (
               <button
@@ -181,12 +172,12 @@ export default function CardsGrid({ catData, stats, onUpdateField }) {
                   )}
                 </div>
 
-                {/* Overlaid Type Image (centered) */}
+                {/* Overlaid Type Image (centered, shifted up 8px for balance) */}
                 {typeSrc && (
                   <img
                     src={`${import.meta.env.BASE_URL}${typeSrc}`}
                     alt=""
-                    className={`absolute inset-0 m-auto w-[24px] h-[24px] object-contain z-10 transition-transform group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
+                    className={`absolute inset-0 m-auto w-[24px] h-[24px] object-contain z-10 -translate-y-[8px] transition-transform group-hover:scale-110 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
                       state === 0 ? "opacity-35" : ""
                     }`}
                     onError={(e) => {

@@ -1,5 +1,6 @@
 import { statSchema } from "./schema.js";
 import { flattenStats } from "./storage.js";
+import { CARD_ORE_LABELS, formatCardName } from "./schema/cardAssets.js";
 
 /**
  * Compares two stats objects (local and shared) against the schema and returns a list of differences.
@@ -47,11 +48,15 @@ export function getStatsDiff(local, shared) {
           const sharedVal = shared[s.key] ?? s.defaultValue ?? s.default ?? 0;
 
           if (localVal !== sharedVal) {
+            let statName = s.name ?? s.key;
+            if (category.id === "cards") {
+              statName = formatCardName(s.key, s.typeImage);
+            }
             diffs.push({
               category: category.name,
-              name: s.name ?? s.key,
-              local: formatValue(localVal, s.type, s),
-              shared: formatValue(sharedVal, s.type, s),
+              name: statName,
+              local: formatValue(localVal, s.type, s, category.id),
+              shared: formatValue(sharedVal, s.type, s, category.id),
               isUpgrade: isUpgrade(localVal, sharedVal, s.type)
             });
           }
@@ -63,13 +68,14 @@ export function getStatsDiff(local, shared) {
   return diffs;
 }
 
-function formatValue(val, type, meta = null) {
+function formatValue(val, type, meta = null, categoryId = null) {
   if (type === "checkbox") {
     return val ? "Yes" : "No";
   }
   if (type === "toggle") {
-    const states = meta?.states ?? 2;
-    const labels = meta?.labels;
+    const isCard = categoryId === "cards";
+    const states = isCard ? 5 : (meta?.states ?? 2);
+    const labels = meta?.labels ?? (isCard ? CARD_ORE_LABELS : null);
     if (labels && labels[val] != null) return String(labels[val]);
     if (states === 2) return val ? "Unlocked" : "Locked";
     return `Level ${val}`;

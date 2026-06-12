@@ -45,11 +45,11 @@ export default function DroneBay({ catData, stats, onUpdateField }) {
                     src={`${import.meta.env.BASE_URL}${drone.icon}`}
                     alt={drone.name}
                     className={`w-14 h-14 object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] transition-all ${
-                      active ? "scale-105" : "grayscale opacity-70"
+                      active ? "scale-105" : ""
                     }`}
                   />
                   {active && (
-                    <div className="absolute inset-0 bg-emerald-500/10 blur-xl rounded-full -z-10 group-hover:bg-emerald-500/20" />
+                    <div className="absolute inset-0 bg-emerald-500/35 blur-xl rounded-full -z-10 group-hover:bg-emerald-500/50 scale-110 transition-all duration-300" />
                   )}
                 </div>
                 <div>

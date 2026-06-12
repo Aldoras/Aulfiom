@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { generateShareLink } from "../stats/sharing.js";
 import { Share2, Check, LogIn, LogOut, Loader2, Award, Cpu, Star, Cloud, CloudOff, CloudLightning, CloudUpload } from "lucide-react";
+import { cardsCategory } from "../stats/schema/cards.js";
 
 export default function Header({
   stats,
@@ -15,6 +16,18 @@ export default function Header({
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
 
+  const cardKeys = useMemo(() => {
+    const keys = new Set();
+    (cardsCategory.stats ?? []).forEach((s) => {
+      if (s.type === "section") {
+        (s.stats ?? []).forEach((c) => keys.add(c.key));
+      } else {
+        keys.add(s.key);
+      }
+    });
+    return keys;
+  }, []);
+
   // Compute live stats summaries
   const summaries = useMemo(() => {
     if (!stats) return { drones: 0, cards: 0, skills: 0 };
@@ -28,7 +41,7 @@ export default function Header({
 
     let cardsUnlocked = 0;
     Object.entries(stats).forEach(([key, val]) => {
-      if (key.endsWith("_card") && typeof val === "number" && val > 0) {
+      if (cardKeys.has(key) && typeof val === "number" && val > 0) {
         cardsUnlocked++;
       }
     });
@@ -41,7 +54,7 @@ export default function Header({
     });
 
     return { drones: dronesActive, cards: cardsUnlocked, skills: skillsUnlocked };
-  }, [stats]);
+  }, [stats, cardKeys]);
 
   const handleShare = async () => {
     try {

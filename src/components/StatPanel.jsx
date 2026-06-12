@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { CARD_BACKINGS, CARD_ORE_LABELS } from "../stats/schema/cardAssets.js";
 
 export default function StatPanel({ catData, stats, onUpdateField }) {
   // Tabs navigation
@@ -243,10 +244,11 @@ function FlatStatRow({ stat, stats, onUpdate }) {
 
 /* ----------------------- Skill Card Component (Much Smaller Toggles) ----------------------- */
 function SkillCard({ stat, stats, onUpdate, catId }) {
+  const isCard = catId === "cards";
   const val = stats[stat.key] ?? stat.default ?? 0;
-  const states = Number(stat.states ?? 2);
+  const states = Number(stat.states ?? (isCard ? 5 : 2));
   
-  const backingSrc = (Array.isArray(stat.images) ? stat.images[val] : null) ?? stat.icon ?? "";
+  const backingSrc = (Array.isArray(stat.images) ? stat.images[val] : null) ?? (isCard ? CARD_BACKINGS[val] : null) ?? stat.icon ?? "";
   const typeSrc = stat.typeImage ?? "";
 
   const handleCardClick = () => {
@@ -255,7 +257,7 @@ function SkillCard({ stat, stats, onUpdate, catId }) {
   };
 
   const isLocked = val === 0;
-  const labels = stat.labels;
+  const labels = stat.labels ?? (isCard ? CARD_ORE_LABELS : null);
   const label = labels && labels[val] != null ? String(labels[val]) : (isLocked ? "Locked" : `Level ${val}`);
 
   // Denser sizes:

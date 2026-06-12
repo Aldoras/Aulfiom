@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Plus, Trash2, Copy, Download, Check, Layers, ChevronDown, ChevronRight, Lock, ArrowUp, ArrowDown } from "lucide-react";
 import { statSchema } from "../stats/schema.js";
 import { gameStatsCategory } from "../stats/schema/gameStats.js";
+import { formatCardName, getNewKeyFromTypeImage } from "../stats/schema/cardAssets.js";
 import IconPickerModal from "./IconPickerModal.jsx";
 
 // Clean variable name builder
@@ -220,7 +221,9 @@ export default function AdminPanel() {
       return { key, name: "New Checkbox", type: "checkbox", default: false };
     }
     if (type === "toggle") {
-      return { key, name: "New Toggle Card", type: "toggle", layout: "card-5", states: 5, default: 0, labels: ["Locked", "Normal", "Gilded", "Polychrome", "Infernal"], typeImage: "" };
+      return category.id === "cards"
+        ? { key, typeImage: "" }
+        : { key, name: "New Toggle Card", type: "toggle", layout: "card-5", states: 5, default: 0, labels: ["Locked", "Normal", "Gilded", "Polychrome", "Infernal"], typeImage: "" };
     }
     if (type === "group") {
       return {
@@ -642,6 +645,7 @@ export default function AdminPanel() {
                     <div className="pl-4 border-l border-white/10 space-y-2">
                       <div className="text-[10px] uppercase font-bold tracking-wider text-gray-500">Tab Items:</div>
                       <StatEditorList
+                        categoryId={category.id}
                         list={tab.stats || []}
                         onStatChange={(sIdx, f, v) => handleStatChange(sIdx, f, v, idx)}
                         onRemoveStat={(sIdx) => handleRemoveStat(sIdx, idx)}
@@ -688,6 +692,7 @@ export default function AdminPanel() {
           <div>
             <div className="text-xs text-gray-500 pb-2">No tabs defined. Adding parameters directly to Category stats.</div>
             <StatEditorList
+              categoryId={category.id}
               list={category.stats || []}
               onStatChange={(sIdx, f, v) => handleStatChange(sIdx, f, v)}
               onRemoveStat={(sIdx) => handleRemoveStat(sIdx)}
@@ -804,7 +809,7 @@ export default function AdminPanel() {
 }
 
 /* ----------------------- Stats Editor List ----------------------- */
-function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onReorderStat, onMoveStat, availableTabs, currentTabId, openIconPicker }) {
+function StatEditorList({ categoryId, list, onStatChange, onRemoveStat, onDuplicateStat, onReorderStat, onMoveStat, availableTabs, currentTabId, openIconPicker }) {
   if (list.length === 0) {
     return <div className="text-[10px] text-gray-500 italic py-1">No items. Click add buttons below to populate.</div>;
   }
@@ -816,6 +821,7 @@ function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onR
           key={idx}
           index={idx}
           stat={stat}
+          categoryId={categoryId}
           onChange={(f, v) => onStatChange(idx, f, v)}
           onRemove={() => onRemoveStat(idx)}
           onDuplicate={() => onDuplicateStat && onDuplicateStat(idx)}
@@ -834,7 +840,7 @@ function StatEditorList({ list, onStatChange, onRemoveStat, onDuplicateStat, onR
 }
 
 /* ----------------------- Individual Stat Editor Card ----------------------- */
-function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorder, isFirst, isLast, onMoveToTab, availableTabs, currentTabId, openIconPicker, allItems }) {
+function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorder, isFirst, isLast, onMoveToTab, availableTabs, currentTabId, openIconPicker, allItems, categoryId }) {
   // Sections are expanded by default for discoverability
   const [isExpanded, setIsExpanded] = useState(stat.type === "section");
 
@@ -859,8 +865,12 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
           className="flex items-center gap-2 text-left flex-1 min-w-0 text-xs text-white"
         >
           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
-          <span className="font-bold text-gray-500 truncate w-14 uppercase">#{index + 1} ({stat.type || "number"})</span>
-          <span className="font-semibold text-gray-200 truncate">{stat.name || stat.key || "Unnamed item/section"}</span>
+          <span className="font-bold text-gray-500 truncate w-14 uppercase">#{index + 1} ({categoryId === "cards" && !isSection ? "toggle" : (stat.type || "number")})</span>
+          <span className="font-semibold text-gray-200 truncate">
+            {categoryId === "cards" && !isSection
+              ? formatCardName(stat.key, stat.typeImage)
+              : (stat.name || stat.key || "Unnamed item/section")}
+          </span>
           <span className="text-[10px] text-gray-500 font-mono font-medium truncate opacity-60">
             {stat.key ? `[key: ${stat.key}]` : ""}
             {isSection ? `[items: ${stat.stats?.length || 0}]` : ""}
@@ -904,6 +914,61 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
       {/* Expanded Editor Form */}
       {isExpanded && (
         <div className="p-3 bg-gray-950/20 border-t border-white/5 space-y-3 text-xs">
+          {categoryId === "cards" && !isSection ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Type Image Overlay */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Type Image Overlay</label>
+                <div className="flex gap-1.5 items-center">
+                  {stat.typeImage && (
+                    <div className="w-7 h-7 rounded bg-gray-950 flex items-center justify-center p-0.5 border border-white/10 shrink-0">
+                      <img src={`${import.meta.env.BASE_URL}${stat.typeImage}`} className="max-w-full max-h-full object-contain filter drop-shadow" alt="" />
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={stat.typeImage || ""}
+                    onChange={(e) => onChange("typeImage", e.target.value)}
+                    placeholder="e.g. icons/ores/Tin_Ore.png"
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openIconPicker(`Select Overlay for Card`, (path) => onChange("typeImage", path))}
+                    className="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                  >
+                    Browse
+                  </button>
+                </div>
+              </div>
+
+              {/* Field Key */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block">Field Key</label>
+                <div className="flex gap-1.5 items-center">
+                  <input
+                    type="text"
+                    value={stat.key || ""}
+                    onChange={(e) => onChange("key", e.target.value)}
+                    placeholder="e.g. tinOre"
+                    className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newKey = getNewKeyFromTypeImage(stat.typeImage);
+                      if (newKey) onChange("key", newKey);
+                    }}
+                    className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 text-[10px] font-bold rounded transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-sm"
+                    title="Generate key from image path"
+                  >
+                    Generate
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {/* Stat Type Selector dropdown */}
             <div className="space-y-1">
@@ -946,7 +1011,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                     type="text"
                     value={stat.key || ""}
                     onChange={(e) => onChange("key", e.target.value)}
-                    placeholder="e.g. tin_ore_card"
+                    placeholder={categoryId === "cards" ? "e.g. tinOre" : "e.g. tin_ore_card"}
                     className="flex-1 bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500 min-w-0"
                   />
                   <button
@@ -1056,6 +1121,7 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
               </div>
               
               <StatEditorList
+                categoryId={categoryId}
                 list={stat.stats || []}
                 onStatChange={(subIdx, f, v) => {
                   const updatedSubStats = [...(stat.stats || [])];
@@ -1096,7 +1162,9 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
                 <button
                   onClick={() => {
                     const key = `newCard_${Date.now().toString().slice(-4)}`;
-                    const newItem = { key, type: "toggle", layout: "card-5", states: 5, default: 0, labels: ["Locked", "Normal", "Gilded", "Polychrome", "Infernal"], typeImage: "" };
+                    const newItem = categoryId === "cards"
+                      ? { key, typeImage: "" }
+                      : { key, type: "toggle", layout: "card-5", states: 5, default: 0, labels: ["Locked", "Normal", "Gilded", "Polychrome", "Infernal"], typeImage: "" };
                     const updated = [...(stat.stats || []), newItem];
                     onChange("stats", updated);
                   }}
@@ -1177,27 +1245,31 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
           )}
 
           {/* Conditional: Toggles (Cards) */}
-          {stat.type === "toggle" && (
+          {((stat.type === "toggle" && categoryId !== "cards") || (categoryId === "cards")) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1.5 border-t border-white/5">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">States (Count)</label>
-                <input
-                  type="number"
-                  value={stat.states ?? 2}
-                  onChange={(e) => onChange("states", parseInt(e.target.value) || 2)}
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Labels (comma-separated)</label>
-                <input
-                  type="text"
-                  value={stat.labels ? stat.labels.join(",") : ""}
-                  onChange={(e) => onChange("labels", e.target.value.split(","))}
-                  placeholder="e.g. Locked,Normal,Gilded"
-                  className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
-                />
-              </div>
+              {categoryId !== "cards" && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">States (Count)</label>
+                    <input
+                      type="number"
+                      value={stat.states ?? 2}
+                      onChange={(e) => onChange("states", parseInt(e.target.value) || 2)}
+                      className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Labels (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={stat.labels ? stat.labels.join(",") : ""}
+                      onChange={(e) => onChange("labels", e.target.value.split(","))}
+                      placeholder="e.g. Locked,Normal,Gilded"
+                      className="w-full bg-gray-950 border border-white/10 text-xs text-white px-2 py-1 rounded outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Type Image Overlay</label>
                 <div className="flex gap-1.5 items-center">
@@ -1312,7 +1384,9 @@ function StatEditorItem({ stat, index, onChange, onRemove, onDuplicate, onReorde
               </div>
             </div>
           )}
-        </div>
+        
+            </>
+          )}</div>
       )}
     </div>
   );
